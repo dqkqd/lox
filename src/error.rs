@@ -4,14 +4,22 @@ use std::fmt;
 pub(crate) enum LoxErrorType {
     UnterminatedString,
     UnexpectedCharacter(char),
+    UnexpectedToken(String),
+    ParserExpectToken(String, String),
 }
 
 impl LoxErrorType {
     fn msg(&self) -> String {
-        match *self {
+        match self {
             LoxErrorType::UnterminatedString => "Unterminated string".to_string(),
             LoxErrorType::UnexpectedCharacter(c) => {
                 format!("Unexpected character `{}`", c)
+            }
+            LoxErrorType::ParserExpectToken(found, expected) => {
+                format!("Expected `{}`. Found `{}`.", expected, found)
+            }
+            LoxErrorType::UnexpectedToken(found) => {
+                format!("Unexpected token `{}`.", found)
             }
         }
     }
@@ -31,7 +39,7 @@ impl LoxError {
 
 impl fmt::Display for LoxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[line {}] : {}", self.line, self.error_type.msg())
+        write!(f, "[line {}]: {}", self.line, self.error_type.msg())
     }
 }
 
