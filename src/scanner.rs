@@ -33,7 +33,7 @@ pub(crate) fn generate_static_reserved_keywords() -> HashMap<String, TokenType> 
 
 #[derive(Default)]
 pub(crate) struct ScanResult {
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
     errors: Vec<LoxError>,
 }
 
@@ -51,10 +51,6 @@ impl ScanResult {
             Ok(token) => self.add_token(token),
             Err(error) => self.add_error(error),
         }
-    }
-
-    pub fn tokens(&self) -> &[Token] {
-        self.tokens.as_ref()
     }
 
     pub fn errors(&self) -> &[LoxError] {
