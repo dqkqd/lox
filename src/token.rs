@@ -1,5 +1,3 @@
-use std::fmt;
-
 pub(crate) type Number = f64;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,6 +49,12 @@ pub(crate) enum TokenType {
     While,
 
     Eof,
+}
+
+impl From<Token> for TokenType {
+    fn from(value: Token) -> Self {
+        value.token_type
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

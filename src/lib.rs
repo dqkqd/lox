@@ -8,4 +8,8 @@ pub(crate) mod error;
 
 pub(crate) mod scanner;
 
+pub(crate) mod expr;
+
+pub(crate) mod parser;
+
 pub use cli::exec;

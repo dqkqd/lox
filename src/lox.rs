@@ -2,7 +2,7 @@ use std::process::exit;
 
 use anyhow::{Context, Result};
 
-use crate::scanner;
+use crate::{parser::Parser, scanner};
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
@@ -46,14 +46,16 @@ impl Lox {
     }
 
     fn run(&mut self, source: &str) {
-        let result = scanner::scan(source);
-        for token in result.tokens() {
-            dbg!(token);
-        }
+        let scan_result = scanner::scan(source);
 
-        self.had_error = result.had_error();
-        for error in result.errors() {
+        self.had_error = scan_result.had_error();
+        // deal with error
+        for error in scan_result.errors() {
             dbg!(error);
         }
+
+        let mut parser = Parser::from(scan_result);
+        let result = parser.parse();
+        dbg!(result.unwrap());
     }
 }
