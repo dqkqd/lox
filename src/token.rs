@@ -55,18 +55,29 @@ pub(crate) enum TokenType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Token {
-    lexeme: TokenType,
+    token_type: TokenType,
+    lexeme: String,
     line: usize,
 }
 
 impl Token {
-    pub fn new(lexeme: TokenType, line: usize) -> Self {
-        Self { lexeme, line }
+    pub fn new(token_type: TokenType, lexeme: &str, line: usize) -> Self {
+        Self {
+            token_type,
+            lexeme: lexeme.to_string(),
+            line,
+        }
     }
-}
 
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} {:?}", self.lexeme, self.lexeme)
+    pub fn token_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
+    pub fn lexeme(&self) -> &str {
+        self.lexeme.as_ref()
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
     }
 }
