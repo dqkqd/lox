@@ -63,32 +63,35 @@ impl ScanResult {
 }
 
 #[derive(Debug)]
-pub(crate) struct Scanner<'a> {
-    it: std::str::Chars<'a>,
+pub(crate) struct Scanner {
+    source: Vec<char>,
     line: usize,
-    buffer: Vec<char>,
+    current: usize,
     reserved_keywords: HashMap<String, TokenType>,
 }
 
-impl<'a> Scanner<'a> {
-    fn new(source: &'a str) -> Self {
+impl Scanner {
+    fn new(source: &str) -> Self {
         Scanner {
-            it: source.chars(),
+            source: source.chars().collect(),
             line: 1,
-            buffer: Vec::with_capacity(16),
+            current: 0,
             reserved_keywords: generate_static_reserved_keywords(),
         }
     }
 
-    fn prev(&mut self, c: char) {
-        self.buffer.push(c);
+    fn prev(&mut self) {
+        if self.current > 0 {
+            self.current -= 1;
+        }
     }
 
     fn next(&mut self) -> Option<char> {
-        if self.buffer.is_empty() {
-            self.it.next()
+        if self.current >= self.source.len() {
+            None
         } else {
-            self.buffer.pop()
+            self.current += 1;
+            Some(self.source[self.current - 1])
         }
     }
 
@@ -99,7 +102,7 @@ impl<'a> Scanner<'a> {
         let mut string = String::new();
         while let Some(c) = self.next() {
             if !f(c) {
-                self.prev(c);
+                self.prev();
                 break;
             }
             if c == '\n' {
@@ -128,13 +131,13 @@ impl<'a> Scanner<'a> {
             Some('.') => {
                 let decimal = self.read_while(|c| c.is_ascii_digit());
                 if decimal.is_empty() {
-                    self.prev('.');
+                    self.prev();
                 } else {
                     numstr.push('.');
                     numstr.push_str(&decimal);
                 }
             }
-            Some(c) => self.prev(c),
+            Some(_) => self.prev(),
             None => (),
         }
 
@@ -173,8 +176,8 @@ impl<'a> Scanner<'a> {
             '!' => match self.next() {
                 Some('=') => self.make_token("!=", TokenType::BangEqual),
                 c => {
-                    if let Some(c) = c {
-                        self.prev(c);
+                    if c.is_some() {
+                        self.prev();
                     }
                     self.make_token("!", TokenType::Bang)
                 }
@@ -182,8 +185,8 @@ impl<'a> Scanner<'a> {
             '=' => match self.next() {
                 Some('=') => self.make_token("==", TokenType::EqualEqual),
                 c => {
-                    if let Some(c) = c {
-                        self.prev(c);
+                    if c.is_some() {
+                        self.prev();
                     }
                     self.make_token("=", TokenType::Equal)
                 }
@@ -191,8 +194,8 @@ impl<'a> Scanner<'a> {
             '<' => match self.next() {
                 Some('=') => self.make_token("<=", TokenType::LessEqual),
                 c => {
-                    if let Some(c) = c {
-                        self.prev(c)
+                    if c.is_some() {
+                        self.prev()
                     }
                     self.make_token("<", TokenType::Less)
                 }
@@ -200,8 +203,8 @@ impl<'a> Scanner<'a> {
             '>' => match self.next() {
                 Some('=') => self.make_token(">=", TokenType::GreaterEqual),
                 c => {
-                    if let Some(c) = c {
-                        self.prev(c)
+                    if c.is_some() {
+                        self.prev()
                     }
                     self.make_token(">", TokenType::Greater)
                 }
@@ -216,8 +219,8 @@ impl<'a> Scanner<'a> {
                     return None;
                 }
                 c => {
-                    if let Some(c) = c {
-                        self.prev(c)
+                    if c.is_some() {
+                        self.prev()
                     }
                     self.make_token("/", TokenType::Slash)
                 }
@@ -239,13 +242,13 @@ impl<'a> Scanner<'a> {
             c => match c.is_ascii_digit() {
                 true => {
                     // number
-                    self.prev(c);
+                    self.prev();
                     self.number()
                 }
                 false => match is_alpha(c) {
                     true => {
                         // identifier
-                        self.prev(c);
+                        self.prev();
                         self.identifier()
                     }
                     false => {
