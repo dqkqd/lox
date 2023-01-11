@@ -21,14 +21,16 @@ pub fn run_prompt(
 ) -> std::io::Result<()> {
     let mut lox = Lox::default();
 
-    write!(writer, "Welcome to Lox prompt\n> ")?;
+    write!(writer, "Welcome to Lox prompt\n>>> ")?;
     writer.flush()?;
 
     for line in reader.lines() {
         let line = line?;
-        lox.run(&line);
-        lox.reset_error();
-        write!(writer, "> ")?;
+        if !line.is_empty() {
+            lox.run(&line);
+            lox.reset_error();
+        }
+        write!(writer, ">>> ")?;
         writer.flush()?;
     }
 
