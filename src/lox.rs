@@ -26,10 +26,10 @@ pub fn run_prompt(
 
     for line in reader.lines() {
         let line = line?;
-        write!(writer, "> ")?;
-        writer.flush()?;
         lox.run(&line);
         lox.reset_error();
+        write!(writer, "> ")?;
+        writer.flush()?;
     }
 
     Ok(())
