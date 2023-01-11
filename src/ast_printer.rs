@@ -34,7 +34,7 @@ impl Visitor<String> for AstPrinter {
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);
-                format!("( {expr} )")
+                format!("(group {expr})")
             }
         }
     }
