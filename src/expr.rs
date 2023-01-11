@@ -11,16 +11,16 @@ pub(crate) enum Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Binary {
     left: Box<Expr>,
-    right: Box<Expr>,
     operator: Token,
+    right: Box<Expr>,
 }
 
 impl Binary {
     pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
         Binary {
             left: Box::new(left),
-            right: Box::new(right),
             operator,
+            right: Box::new(right),
         }
     }
 }
