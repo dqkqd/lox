@@ -1,4 +1,7 @@
-use crate::token::{Number, Token};
+use crate::{
+    token::{Number, Token},
+    visitor::Visitor,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Expr {
@@ -8,11 +11,17 @@ pub(crate) enum Expr {
     Grouping(Grouping),
 }
 
+impl Expr {
+    pub fn walk_epxr<T>(&self, visitor: &mut impl Visitor<T>) -> T {
+        visitor.visit_expr(self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Binary {
-    left: Box<Expr>,
-    operator: Token,
-    right: Box<Expr>,
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 impl Binary {
@@ -27,8 +36,8 @@ impl Binary {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Unary {
-    operator: Token,
-    right: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 impl Unary {
@@ -50,7 +59,7 @@ pub(crate) enum Literal {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Grouping {
-    expr: Box<Expr>,
+    pub expr: Box<Expr>,
 }
 
 impl Grouping {

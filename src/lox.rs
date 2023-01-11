@@ -2,7 +2,7 @@ use std::process::exit;
 
 use anyhow::{Context, Result};
 
-use crate::{parser::Parser, scanner};
+use crate::{ast_printer::AstPrinter, parser::Parser, scanner};
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
@@ -56,6 +56,9 @@ impl Lox {
 
         let mut parser = Parser::from(scan_result);
         let result = parser.parse();
-        dbg!(result.unwrap());
+        //dbg!(&result.unwrap());
+
+        let mut printer = AstPrinter::default();
+        printer.print_expr(&result.unwrap());
     }
 }
