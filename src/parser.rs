@@ -58,24 +58,25 @@ impl Parser {
         self.equality()
     }
 
-    // @todo: fix this to return token instead,
-    fn match_token_type(&mut self, token_type: &[TokenType]) -> bool {
+    fn match_token_type(&mut self, token_type: &[TokenType]) -> Option<Token> {
         if let Some(token) = self.next() {
             let contain = token_type.iter().any(|lexeme| lexeme == token.token_type());
-            self.prev(token);
-            contain
+            if !contain {
+                self.prev(token);
+                None
+            } else {
+                Some(token)
+            }
         } else {
-            false
+            None
         }
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparision()?;
-        loop {
-            if !self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-                break;
-            }
-            let operator = self.next().unwrap();
+        while let Some(operator) =
+            self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual])
+        {
             let right = self.comparision()?;
             expr = Expr::Binary(Binary::new(expr, operator, right));
         }
@@ -84,16 +85,12 @@ impl Parser {
 
     fn comparision(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
-        loop {
-            if !self.match_token_type(&[
-                TokenType::Greater,
-                TokenType::GreaterEqual,
-                TokenType::Less,
-                TokenType::LessEqual,
-            ]) {
-                break;
-            }
-            let operator = self.next().unwrap();
+        while let Some(operator) = self.match_token_type(&[
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
             let right = self.term()?;
             expr = Expr::Binary(Binary::new(expr, operator, right));
         }
@@ -102,11 +99,7 @@ impl Parser {
 
     fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor()?;
-        loop {
-            if !self.match_token_type(&[TokenType::Minus, TokenType::Plus]) {
-                break;
-            }
-            let operator = self.next().unwrap();
+        while let Some(operator) = self.match_token_type(&[TokenType::Minus, TokenType::Plus]) {
             let right = self.factor()?;
             expr = Expr::Binary(Binary::new(expr, operator, right));
         }
@@ -115,11 +108,7 @@ impl Parser {
 
     fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary()?;
-        loop {
-            if !self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
-                break;
-            }
-            let operator = self.next().unwrap();
+        while let Some(operator) = self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
             let right = self.unary()?;
             expr = Expr::Binary(Binary::new(expr, operator, right));
         }
@@ -127,8 +116,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expr, LoxError> {
-        if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
-            let operator = self.next().unwrap();
+        if let Some(operator) = self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
             let right = self.unary()?;
             Ok(Expr::Unary(Unary::new(operator, right)))
         } else {
@@ -195,7 +183,10 @@ impl Parser {
         ];
 
         loop {
-            if self.match_token_type(&start_token_type) || self.next().is_none() {
+            if let Some(token) = self.match_token_type(&start_token_type) {
+                self.prev(token);
+                break;
+            } else if self.next().is_none() {
                 break;
             }
         }
