@@ -4,15 +4,15 @@ use crate::{
 };
 
 #[derive(Default)]
-pub(crate) struct AstPrinter;
+pub(crate) struct AstRepr;
 
-impl AstPrinter {
-    pub fn print_expr(&mut self, e: &Expr) {
-        println!("{}", e.walk_epxr(self))
+impl AstRepr {
+    pub fn expr(&mut self, e: &Expr) -> String {
+        e.walk_epxr(self)
     }
 }
 
-impl Visitor<String> for AstPrinter {
+impl Visitor<String> for AstRepr {
     fn visit_expr(&mut self, e: &Expr) -> String {
         match e {
             Expr::Binary(binary) => {
