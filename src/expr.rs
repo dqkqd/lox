@@ -4,10 +4,18 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
+pub(crate) enum Object {
+    Null,
+    Number(Number),
+    String(String),
+    Bool(bool),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Expr {
     Binary(Binary),
     Unary(Unary),
-    Literal(Literal),
+    Literal(Object),
     Grouping(Grouping),
 }
 
@@ -47,14 +55,6 @@ impl Unary {
             right: Box::new(right),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Literal {
-    Null,
-    Number(Number),
-    String(String),
-    Bool(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]

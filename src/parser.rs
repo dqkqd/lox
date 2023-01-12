@@ -2,7 +2,7 @@ use std::vec::IntoIter;
 
 use crate::{
     error::{LoxError, LoxErrorType},
-    expr::{Binary, Expr, Grouping, Literal, Unary},
+    expr::{Binary, Expr, Grouping, Object, Unary},
     scanner::ScanResult,
     token::{Token, TokenType},
 };
@@ -127,11 +127,11 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, LoxError> {
         if let Some(token) = self.next() {
             match TokenType::from(token.clone()) {
-                TokenType::Nil => Ok(Expr::Literal(Literal::Null)),
-                TokenType::False => Ok(Expr::Literal(Literal::Bool(false))),
-                TokenType::True => Ok(Expr::Literal(Literal::Bool(true))),
-                TokenType::Number(number) => Ok(Expr::Literal(Literal::Number(number))),
-                TokenType::String(string) => Ok(Expr::Literal(Literal::String(string))),
+                TokenType::Nil => Ok(Expr::Literal(Object::Null)),
+                TokenType::False => Ok(Expr::Literal(Object::Bool(false))),
+                TokenType::True => Ok(Expr::Literal(Object::Bool(true))),
+                TokenType::Number(number) => Ok(Expr::Literal(Object::Number(number))),
+                TokenType::String(string) => Ok(Expr::Literal(Object::String(string))),
                 TokenType::LeftParen => {
                     let expr = self.expresion()?;
                     self.consume(TokenType::RightParen, ")")?;

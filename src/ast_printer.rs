@@ -1,5 +1,5 @@
 use crate::{
-    expr::{Expr, Literal},
+    expr::{Expr, Object},
     visitor::Visitor,
 };
 
@@ -26,11 +26,11 @@ impl Visitor<String> for AstRepr {
                 let right = self.visit_expr(&unary.right);
                 format!("({operator} {right})")
             }
-            Expr::Literal(literal) => match literal {
-                Literal::Null => "nil".to_string(),
-                Literal::Number(n) => (*n).to_string(),
-                Literal::String(s) => s.clone(),
-                Literal::Bool(b) => b.to_string(),
+            Expr::Literal(object) => match object {
+                Object::Null => "nil".to_string(),
+                Object::Number(n) => (*n).to_string(),
+                Object::String(s) => s.clone(),
+                Object::Bool(b) => b.to_string(),
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);
