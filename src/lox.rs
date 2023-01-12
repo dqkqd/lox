@@ -58,9 +58,10 @@ impl Lox {
 
         let mut parser = Parser::from(scan_result);
         let result = parser.parse();
-        //dbg!(&result.unwrap());
 
         let mut printer = AstRepr::default();
-        println!("{}", printer.expr(&result.unwrap()));
+        if let Ok(expr) = result {
+            println!("{}", printer.expr(&expr));
+        }
     }
 }

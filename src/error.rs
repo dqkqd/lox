@@ -2,7 +2,11 @@ use std::fmt;
 
 #[derive(PartialEq)]
 pub(crate) enum LoxErrorType {
+    // scanner error
     UnterminatedString,
+
+    // parser error
+    ExpectedExpression,
     UnexpectedCharacter(char),
     UnexpectedToken(String),
     ParserExpectToken(String, String),
@@ -21,6 +25,7 @@ impl LoxErrorType {
             LoxErrorType::UnexpectedToken(found) => {
                 format!("Unexpected token `{}`.", found)
             }
+            LoxErrorType::ExpectedExpression => "Expected expression".to_string(),
         }
     }
 }

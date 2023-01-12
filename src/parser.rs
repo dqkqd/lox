@@ -138,16 +138,14 @@ impl Parser {
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 }
                 _ => {
-                    let error = LoxError::new(
-                        token.line(),
-                        LoxErrorType::UnexpectedToken(token.lexeme().to_string()),
-                    );
+                    let error = LoxError::new(token.line(), LoxErrorType::ExpectedExpression);
                     self.prev(token);
                     Err(error)
                 }
             }
         } else {
-            unimplemented!("Unexpected eof.")
+            let error = LoxError::new(self._eof_token.line(), LoxErrorType::ExpectedExpression);
+            Err(error)
         }
     }
 
@@ -164,7 +162,8 @@ impl Parser {
                 Ok(())
             }
         } else {
-            unimplemented!("Unexpected eof.")
+            let error = LoxError::new(self._eof_token.line(), LoxErrorType::ExpectedExpression);
+            Err(error)
         }
     }
 
