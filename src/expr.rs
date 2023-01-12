@@ -1,15 +1,4 @@
-use crate::{
-    token::{Number, Token},
-    visitor::Visitor,
-};
-
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Object {
-    Null,
-    Number(Number),
-    String(String),
-    Bool(bool),
-}
+use crate::{object::Object, token::Token, visitor::Visitor};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Expr {

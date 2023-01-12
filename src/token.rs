@@ -1,4 +1,4 @@
-pub(crate) type Number = f64;
+use crate::object::Number;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TokenType {

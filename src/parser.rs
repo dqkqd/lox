@@ -2,7 +2,8 @@ use std::vec::IntoIter;
 
 use crate::{
     error::{LoxError, LoxErrorType},
-    expr::{Binary, Expr, Grouping, Object, Unary},
+    expr::{Binary, Expr, Grouping, Unary},
+    object::Object,
     scanner::ScanResult,
     token::{Token, TokenType},
 };

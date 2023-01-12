@@ -1,7 +1,4 @@
-use crate::{
-    expr::{Expr, Object},
-    visitor::Visitor,
-};
+use crate::{expr::Expr, object::Object, visitor::Visitor};
 
 #[derive(Default)]
 pub(crate) struct AstRepr;

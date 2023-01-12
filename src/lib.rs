@@ -14,6 +14,8 @@ pub(crate) mod parser;
 
 pub(crate) mod ast_printer;
 
+pub(crate) mod object;
+
 pub(crate) mod visitor;
 
 pub use cli::exec;

@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     error::{LoxError, LoxErrorType},
-    token::{Number, Token, TokenType},
+    object::Number,
+    token::{Token, TokenType},
 };
 
 // alpha for identifier
