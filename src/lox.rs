@@ -21,7 +21,10 @@ pub fn run_prompt(
 ) -> std::io::Result<()> {
     let mut lox = Lox::default();
 
-    write!(writer, "Welcome to Lox prompt\n>>> ")?;
+    const WELCOME_MESSAGES: &str = "Welcome to Lox prompt";
+    const PROMPT: &str = ">>>";
+
+    write!(writer, "{}\n{} ", WELCOME_MESSAGES, PROMPT)?;
     writer.flush()?;
 
     for line in reader.lines() {
@@ -30,7 +33,7 @@ pub fn run_prompt(
             lox.run(&line);
             lox.reset_error();
         }
-        write!(writer, ">>> ")?;
+        write!(writer, "{} ", PROMPT)?;
         writer.flush()?;
     }
 
