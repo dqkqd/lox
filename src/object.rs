@@ -53,4 +53,11 @@ impl Object {
     pub fn is_bool(&self) -> bool {
         self.as_bool().is_some()
     }
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Object::Null => false,
+            Object::Bool(b) => *b,
+            _ => true,
+        }
+    }
 }
