@@ -9,7 +9,6 @@ pub(crate) enum Object {
 }
 
 impl Object {
-
     pub fn as_null(&self) -> Option<Object> {
         match self {
             Object::Null => Some(Object::Null),
@@ -53,6 +52,7 @@ impl Object {
     pub fn is_bool(&self) -> bool {
         self.as_bool().is_some()
     }
+
     pub fn is_truthy(&self) -> bool {
         match self {
             Object::Null => false,
@@ -60,4 +60,53 @@ impl Object {
             _ => true,
         }
     }
+
+    pub fn ge(&self, rhs: &Self) -> ObjectOperationResult {
+        let lhs = self
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        let rhs = rhs
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        Ok(Object::Bool(lhs > rhs))
+    }
+
+    pub fn le(&self, rhs: &Self) -> ObjectOperationResult {
+        let lhs = self
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        let rhs = rhs
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        Ok(Object::Bool(lhs < rhs))
+    }
+
+    pub fn gt(&self, rhs: &Self) -> ObjectOperationResult {
+        let lhs = self
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        let rhs = rhs
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        Ok(Object::Bool(lhs >= rhs))
+    }
+
+    pub fn lt(&self, rhs: &Self) -> ObjectOperationResult {
+        let lhs = self
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        let rhs = rhs
+            .as_number()
+            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+        Ok(Object::Bool(lhs <= rhs))
+    }
+
+    pub fn ne(&self, rhs: &Self) -> ObjectOperationResult {
+        Ok(Object::Bool(self != rhs))
+    }
+
+    pub fn eq(&self, rhs: &Self) -> ObjectOperationResult {
+        Ok(Object::Bool(self == rhs))
+    }
+}
 }
