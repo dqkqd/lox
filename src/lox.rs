@@ -2,7 +2,7 @@ use std::process::exit;
 
 use anyhow::{Context, Result};
 
-use crate::{ast_printer::AstRepr, parser::Parser, scanner};
+use crate::{interpreter::Interpreter, parser::Parser, scanner};
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
@@ -56,15 +56,22 @@ impl Lox {
         self.had_error = scan_result.had_error();
         // deal with error
         for error in scan_result.errors() {
-            dbg!(error);
+            println!("{}", error);
         }
 
         let mut parser = Parser::from(scan_result);
-        let result = parser.parse();
+        let mut interpreter = Interpreter::default();
 
-        let mut printer = AstRepr::default();
-        if let Ok(expr) = result {
-            println!("{}", printer.expr(&expr));
+        match parser.parse() {
+            Ok(e) => match interpreter.expr(&e) {
+                Ok(object) => println!("{}", object.to_string()),
+                Err(e) => {
+                    println!("{}", e)
+                }
+            },
+            Err(e) => {
+                println!("{}", e)
+            }
         }
     }
 }
