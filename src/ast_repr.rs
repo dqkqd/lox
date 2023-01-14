@@ -20,12 +20,12 @@ impl Visitor<String, String> for AstRepr {
                 let left = self.visit_expr(&binary.left);
                 let right = self.visit_expr(&binary.right);
                 let operator = binary.operator.lexeme();
-                format!("(binary {operator} {left} {right})")
+                format!("Expr::Binary({left} {operator} {right})")
             }
             Expr::Unary(unary) => {
                 let operator = unary.operator.lexeme();
                 let right = self.visit_expr(&unary.right);
-                format!("(unary {operator} {right})")
+                format!("Expr::Unary({operator} {right})")
             }
             Expr::Literal(object) => match object {
                 Object::Null => "nil".to_string(),
@@ -35,17 +35,20 @@ impl Visitor<String, String> for AstRepr {
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);
-                format!("(group {expr})")
+                format!("Expr::Group({expr})")
             }
         }
     }
 
     fn visit_stmt(&mut self, s: &Stmt) -> String {
         match s {
-            Stmt::Expression(e) => self.visit_expr(e),
+            Stmt::Expression(e) => {
+                let expr = self.visit_expr(e);
+                format!("Stmt::Expr({})", expr)
+            }
             Stmt::Print(e) => {
                 let value = self.visit_expr(e);
-                format!("(print {})", value)
+                format!("Stmt::Print({})", value)
             }
         }
     }

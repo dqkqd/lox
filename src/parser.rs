@@ -332,7 +332,7 @@ mod test {
             Ok("\"this is string\""),
             Ok("123"),
             Ok("123.456"),
-            Ok("(group nil)"),
+            Ok("Expr::Group(nil)"),
             Err(ParseError::expected_expression(1)),
         ];
         test_parser(&sources, &expected_results);
@@ -345,16 +345,16 @@ mod test {
             "-(1.2)",
         ];
         let expected_results = [
-            Ok("(unary - 1.2)"),
-            Ok("(unary - \"a\")"),
-            Ok("(unary - nil)"),
-            Ok("(unary - true)"),
-            Ok("(unary - false)"),
-            Ok("(unary ! 1)"),
-            Ok("(unary ! \"a\")"),
-            Ok("(unary ! nil)"),
-            Ok("(unary ! true)"),
-            Ok("(unary ! false)"),
+            Ok("Expr::Unary(- 1.2)"),
+            Ok("Expr::Unary(- \"a\")"),
+            Ok("Expr::Unary(- nil)"),
+            Ok("Expr::Unary(- true)"),
+            Ok("Expr::Unary(- false)"),
+            Ok("Expr::Unary(! 1)"),
+            Ok("Expr::Unary(! \"a\")"),
+            Ok("Expr::Unary(! nil)"),
+            Ok("Expr::Unary(! true)"),
+            Ok("Expr::Unary(! false)"),
         ];
         test_parser(&sources, &expected_results);
     }
@@ -362,7 +362,7 @@ mod test {
     #[test]
     fn binary() {
         let source = [
-            "1*2",
+            "1+2",
             "3 - 7",
             "true * false",
             "nil / nil",
@@ -374,16 +374,16 @@ mod test {
             "true <= true",
         ];
         let expected_results = [
-            Ok("(binary * 1 2)"),
-            Ok("(binary - 3 7)"),
-            Ok("(binary * true false)"),
-            Ok("(binary / nil nil)"),
-            Ok("(binary == \"a\" \"b\")"),
-            Ok("(binary != nil nil)"),
-            Ok("(binary > 3 7)"),
-            Ok("(binary >= true false)"),
-            Ok("(binary < 2 3)"),
-            Ok("(binary <= true true)"),
+            Ok("Expr::Binary(1 + 2)"),
+            Ok("Expr::Binary(3 - 7)"),
+            Ok("Expr::Binary(true * false)"),
+            Ok("Expr::Binary(nil / nil)"),
+            Ok("Expr::Binary(\"a\" == \"b\")"),
+            Ok("Expr::Binary(nil != nil)"),
+            Ok("Expr::Binary(3 > 7)"),
+            Ok("Expr::Binary(true >= false)"),
+            Ok("Expr::Binary(2 < 3)"),
+            Ok("Expr::Binary(true <= true)"),
         ];
         test_parser(&source, &expected_results);
     }
