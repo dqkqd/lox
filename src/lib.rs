@@ -20,6 +20,4 @@ pub(crate) mod visitor;
 
 pub(crate) mod interpreter;
 
-pub(crate) use error::lox_error;
-
 pub use cli::exec;

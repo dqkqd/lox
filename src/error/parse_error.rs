@@ -24,14 +24,6 @@ pub(crate) struct ParseError {
 }
 
 impl ParseError {
-    pub fn line(&self) -> usize {
-        self.line
-    }
-
-    pub fn msg(&self) -> String {
-        self.error_type.msg()
-    }
-
     pub fn expected_expression(line: usize) -> Self {
         Self {
             line,
@@ -49,7 +41,12 @@ impl ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[line {}]: {}", self.line, self.error_type.msg())
+        write!(
+            f,
+            "[line {}]: ParseError: {}",
+            self.line,
+            self.error_type.msg()
+        )
     }
 }
 

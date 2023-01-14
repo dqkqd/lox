@@ -76,7 +76,7 @@ impl Lox {
                 }
             },
             Err(e) => {
-                println!("{}", e)
+                println!("{:?}", e)
             }
         }
     }

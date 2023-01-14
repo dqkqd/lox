@@ -3,16 +3,17 @@ use std::vec::IntoIter;
 use crate::{
     error::parse_error::ParseError,
     expr::{Binary, Expr, Grouping, Unary},
-    lox_error::LoxError,
     object::Object,
     scanner::Scanner,
     token::{Token, TokenType},
 };
 
+type ParseResult<T> = Result<T, ParseError>;
+
 pub(crate) struct Parser {
     it: IntoIter<Token>,
     buffer: Vec<Token>,
-    _errors: Vec<LoxError>,
+    _errors: Vec<ParseError>,
     eof_token: Token,
 }
 
@@ -36,7 +37,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, LoxError> {
+    pub fn parse(&mut self) -> ParseResult<Expr> {
         let result = self.expresion();
         if result.is_err() {
             self.synchronize();
@@ -56,7 +57,7 @@ impl Parser {
         }
     }
 
-    fn expresion(&mut self) -> Result<Expr, LoxError> {
+    fn expresion(&mut self) -> ParseResult<Expr> {
         self.equality()
     }
 
@@ -74,7 +75,7 @@ impl Parser {
         }
     }
 
-    fn equality(&mut self) -> Result<Expr, LoxError> {
+    fn equality(&mut self) -> ParseResult<Expr> {
         let mut expr = self.comparision()?;
         while let Some(operator) =
             self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual])
@@ -85,7 +86,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn comparision(&mut self) -> Result<Expr, LoxError> {
+    fn comparision(&mut self) -> ParseResult<Expr> {
         let mut expr = self.term()?;
         while let Some(operator) = self.match_token_type(&[
             TokenType::Greater,
@@ -99,7 +100,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr, LoxError> {
+    fn term(&mut self) -> ParseResult<Expr> {
         let mut expr = self.factor()?;
         while let Some(operator) = self.match_token_type(&[TokenType::Minus, TokenType::Plus]) {
             let right = self.factor()?;
@@ -108,7 +109,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr, LoxError> {
+    fn factor(&mut self) -> ParseResult<Expr> {
         let mut expr = self.unary()?;
         while let Some(operator) = self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
             let right = self.unary()?;
@@ -117,7 +118,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr, LoxError> {
+    fn unary(&mut self) -> ParseResult<Expr> {
         if let Some(operator) = self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
             let right = self.unary()?;
             Ok(Expr::Unary(Unary::new(operator, right)))
@@ -126,7 +127,7 @@ impl Parser {
         }
     }
 
-    fn primary(&mut self) -> Result<Expr, LoxError> {
+    fn primary(&mut self) -> ParseResult<Expr> {
         if let Some(token) = self.next() {
             match TokenType::from(token.clone()) {
                 TokenType::Nil => Ok(Expr::Literal(Object::Null)),
@@ -140,32 +141,27 @@ impl Parser {
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 }
                 _ => {
-                    let error = LoxError::from(ParseError::expected_expression(token.line()));
+                    let error = ParseError::expected_expression(token.line());
                     self.prev(token);
                     Err(error)
                 }
             }
         } else {
-            Err(LoxError::from(ParseError::expected_expression(
-                self.eof_token.line(),
-            )))
+            Err(ParseError::expected_expression(self.eof_token.line()))
         }
     }
 
-    fn consume(&mut self, token_type: TokenType) -> Result<(), LoxError> {
+    fn consume(&mut self, token_type: TokenType) -> Result<(), ParseError> {
         if let Some(token) = self.next() {
             if token.token_type() != &token_type {
-                let error =
-                    LoxError::from(ParseError::unexpected_token(token.line(), token.lexeme()));
+                let error = ParseError::unexpected_token(token.line(), token.lexeme());
                 self.prev(token);
                 Err(error)
             } else {
                 Ok(())
             }
         } else {
-            Err(LoxError::from(ParseError::expected_expression(
-                self.eof_token.line(),
-            )))
+            Err(ParseError::expected_expression(self.eof_token.line()))
         }
     }
 
