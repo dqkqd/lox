@@ -206,7 +206,11 @@ impl Parser {
                 Ok(())
             }
         } else {
-            Err(ParseError::expected_expression(self.eof_token.line()))
+            Err(ParseError::unexpected_token(
+                self.eof_token.line(),
+                self.eof_token.token_type(),
+                &token_type,
+            ))
         }
     }
 
@@ -337,7 +341,11 @@ mod test {
                 Ok("123"),
                 Ok("123.456"),
                 Ok("Expr::Group(nil)"),
-                Err(ParseError::expected_expression(1)),
+                Err(ParseError::unexpected_token(
+                    1,
+                    &TokenType::Eof,
+                    &TokenType::RightParen,
+                )),
             ];
             test_parser(&sources, &expected_results);
         }
@@ -460,7 +468,7 @@ mod test {
             ];
             let expected_errors = [
                 ParseError::unexpected_token(3, &TokenType::Semicolon, &TokenType::RightParen),
-                ParseError::expected_expression(5),
+                ParseError::unexpected_token(5, &TokenType::Eof, &TokenType::Semicolon),
             ];
             test_parser(source, &expected_statements, &expected_errors)
         }
