@@ -126,8 +126,10 @@ impl Add for Object {
             Ok(Object::Number(
                 self.as_number().unwrap() + rhs.as_number().unwrap(),
             ))
-        } else {
+        } else if self.is_string() && rhs.is_string() {
             Ok(Object::String(self.to_string() + &rhs.to_string()))
+        } else {
+            Err(ObjectError::addition())
         }
     }
 }

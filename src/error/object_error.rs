@@ -3,8 +3,7 @@ use std::fmt;
 #[derive(PartialEq)]
 pub(crate) enum ObjectErrorType {
     Comparision,
-    Negative,
-    Subtract,
+    Addition,
     Multiplication,
     Division,
 }
@@ -13,8 +12,9 @@ impl ObjectErrorType {
     fn msg(&self) -> String {
         match self {
             ObjectErrorType::Comparision => "Could not compare non-number together".to_string(),
-            ObjectErrorType::Negative => "Could not negative non-number".to_string(),
-            ObjectErrorType::Subtract => "Could not subtract non-number".to_string(),
+            ObjectErrorType::Addition => {
+                "Could not add non-number or non-string together".to_string()
+            }
             ObjectErrorType::Multiplication => "Could not multiply non-number".to_string(),
             ObjectErrorType::Division => "Could not divide non-number".to_string(),
         }
@@ -35,7 +35,9 @@ impl ObjectError {
 
     pub fn negative() -> Self {
         Self {
-            error_type: ObjectErrorType::Negative,
+    pub fn addition() -> Self {
+        Self {
+            error_type: ObjectErrorType::Addition,
         }
     }
 
