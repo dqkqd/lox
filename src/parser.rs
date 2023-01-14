@@ -151,7 +151,7 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token_type: TokenType) -> Result<(), ParseError> {
+    fn consume(&mut self, token_type: TokenType) -> ParseResult<()> {
         if let Some(token) = self.next() {
             if token.token_type() != &token_type {
                 let error = ParseError::unexpected_token(token.line(), token.lexeme());
@@ -181,11 +181,190 @@ impl Parser {
 
         loop {
             if let Some(token) = self.match_token_type(&start_token_type) {
-                self.prev(token);
+                // dont fallback if it is semicolon
+                if token.token_type() != &TokenType::Semicolon {
+                    self.prev(token);
+                }
                 break;
             } else if self.next().is_none() {
                 break;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use std::ops::{Deref, DerefMut};
+
+    use crate::ast_repr::AstRepr;
+
+    use super::*;
+
+    struct TestParser {
+        parser: Parser,
+    }
+
+    impl TestParser {
+        fn current(&mut self) -> Option<Token> {
+            self.parser.next().map(|token| {
+                self.parser.prev(token.clone());
+                token
+            })
+        }
+    }
+
+    impl From<&str> for TestParser {
+        fn from(source: &str) -> Self {
+            let mut scanner = Scanner::new(source);
+            scanner.scan_tokens();
+            assert!(!scanner.had_error());
+            TestParser {
+                parser: Parser::from(&scanner),
+            }
+        }
+    }
+
+    impl Deref for TestParser {
+        type Target = Parser;
+        fn deref(&self) -> &Self::Target {
+            &self.parser
+        }
+    }
+
+    impl DerefMut for TestParser {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.parser
+        }
+    }
+
+    fn test_parser(sources: &[&str], expected_results: &[ParseResult<&str>]) {
+        let mut ast_repr = AstRepr::default();
+        for (&src, expected) in std::iter::zip(sources, expected_results) {
+            let mut parser = TestParser::from(src);
+            let result = parser.parse().map(|expr| ast_repr.expr(&expr));
+            assert_eq!(result.as_deref(), expected.as_deref());
+        }
+    }
+
+    #[test]
+    fn consume_without_error() -> ParseResult<()> {
+        let source = "(";
+        let mut parser = TestParser::from(source);
+        parser.consume(TokenType::LeftParen)?;
+        assert!(parser.current().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn consume_with_error() -> ParseResult<()> {
+        let source = ")";
+        let mut parser = TestParser::from(source);
+        let error = ParseError::unexpected_token(1, ")");
+        assert_eq!(parser.consume(TokenType::LeftParen), Err(error));
+        assert!(parser.current().is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn primary() {
+        let sources = [
+            "nil",
+            "true",
+            "false",
+            "\"this is string\"",
+            "123",
+            "123.456",
+            "(nil)",
+            "(1",
+        ];
+        let expected_results = [
+            Ok("nil"),
+            Ok("true"),
+            Ok("false"),
+            Ok("\"this is string\""),
+            Ok("123"),
+            Ok("123.456"),
+            Ok("(group nil)"),
+            Err(ParseError::expected_expression(1)),
+        ];
+        test_parser(&sources, &expected_results);
+    }
+
+    #[test]
+    fn unary() {
+        let sources = [
+            "-1.2", "-\"a\"", "-nil", "-true", "-false", "!1", "!\"a\"", "!nil", "!true", "!false",
+            "-(1.2)",
+        ];
+        let expected_results = [
+            Ok("(unary - 1.2)"),
+            Ok("(unary - \"a\")"),
+            Ok("(unary - nil)"),
+            Ok("(unary - true)"),
+            Ok("(unary - false)"),
+            Ok("(unary ! 1)"),
+            Ok("(unary ! \"a\")"),
+            Ok("(unary ! nil)"),
+            Ok("(unary ! true)"),
+            Ok("(unary ! false)"),
+        ];
+        test_parser(&sources, &expected_results);
+    }
+
+    #[test]
+    fn binary() {
+        let source = [
+            "1*2",
+            "3 - 7",
+            "true * false",
+            "nil / nil",
+            "\"a\" == \"b\" ",
+            "nil != nil",
+            "3 > 7",
+            "true >= false",
+            "2 < 3",
+            "true <= true",
+        ];
+        let expected_results = [
+            Ok("(binary * 1 2)"),
+            Ok("(binary - 3 7)"),
+            Ok("(binary * true false)"),
+            Ok("(binary / nil nil)"),
+            Ok("(binary == \"a\" \"b\")"),
+            Ok("(binary != nil nil)"),
+            Ok("(binary > 3 7)"),
+            Ok("(binary >= true false)"),
+            Ok("(binary < 2 3)"),
+            Ok("(binary <= true true)"),
+        ];
+        test_parser(&source, &expected_results);
+    }
+
+    #[test]
+    fn synchronize_with_semicolon() {
+        // synchronize until semicolon, the next token should be `true`.
+        let source = "(1 + 2 + 3 nothing; true < false";
+        let mut parser = TestParser::from(source);
+        let result = parser.parse();
+        assert_eq!(result, Err(ParseError::unexpected_token(1, "nothing")));
+        assert_eq!(
+            parser.current(),
+            Some(Token::new(TokenType::True, "true", 1)),
+        );
+    }
+
+    #[test]
+    fn synchronize_without_semicolon() {
+        // synchronize until semicolon, the next token should be `return`.
+        let source = "(1 + 2 + 3 return true < false";
+        let mut parser = TestParser::from(source);
+        let result = parser.parse();
+        assert_eq!(result, Err(ParseError::unexpected_token(1, "return")));
+        assert_eq!(
+            parser.current(),
+            Some(Token::new(TokenType::Return, "return", 1)),
+        );
     }
 }
