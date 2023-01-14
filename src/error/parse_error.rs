@@ -1,16 +1,18 @@
 use std::fmt;
 
+use crate::token::TokenType;
+
 #[derive(PartialEq)]
 pub(crate) enum ParseErrorType {
     ExpectedExpression,
-    UnexpectedToken(String),
+    UnexpectedToken(String, String),
 }
 
 impl ParseErrorType {
     fn msg(&self) -> String {
         match self {
-            ParseErrorType::UnexpectedToken(found) => {
-                format!("Unexpected token `{}`.", found)
+            ParseErrorType::UnexpectedToken(found, expected) => {
+                format!("Expected `{}`. Found `{}`", expected, found)
             }
             ParseErrorType::ExpectedExpression => "Expected expression".to_string(),
         }
@@ -31,10 +33,10 @@ impl ParseError {
         }
     }
 
-    pub fn unexpected_token(line: usize, found: &str) -> Self {
+    pub fn unexpected_token(line: usize, found: &TokenType, expected: &TokenType) -> Self {
         Self {
             line,
-            error_type: ParseErrorType::UnexpectedToken(found.to_string()),
+            error_type: ParseErrorType::UnexpectedToken(found.to_string(), expected.to_string()),
         }
     }
 }

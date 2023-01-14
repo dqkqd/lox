@@ -154,7 +154,8 @@ impl Parser {
     fn consume(&mut self, token_type: TokenType) -> ParseResult<()> {
         if let Some(token) = self.next() {
             if token.token_type() != &token_type {
-                let error = ParseError::unexpected_token(token.line(), token.lexeme());
+                let error =
+                    ParseError::unexpected_token(token.line(), token.token_type(), &token_type);
                 self.prev(token);
                 Err(error)
             } else {
@@ -261,8 +262,9 @@ mod test {
     fn consume_with_error() -> ParseResult<()> {
         let source = ")";
         let mut parser = TestParser::from(source);
-        let error = ParseError::unexpected_token(1, ")");
-        assert_eq!(parser.consume(TokenType::LeftParen), Err(error));
+        let expected_token = TokenType::LeftParen;
+        let error = ParseError::unexpected_token(1, &TokenType::RightParen, &expected_token);
+        assert_eq!(parser.consume(expected_token), Err(error));
         assert!(parser.current().is_some());
         Ok(())
     }
@@ -348,11 +350,15 @@ mod test {
         let source = "(1 + 2 + 3 nothing; true < false";
         let mut parser = TestParser::from(source);
         let result = parser.parse();
-        assert_eq!(result, Err(ParseError::unexpected_token(1, "nothing")));
         assert_eq!(
-            parser.current(),
-            Some(Token::new(TokenType::True, "true", 1)),
+            result,
+            Err(ParseError::unexpected_token(
+                1,
+                &TokenType::Identifier("nothing".to_string()),
+                &TokenType::RightParen
+            ))
         );
+        assert_eq!(parser.current(), Some(Token::new(TokenType::True, 1)),);
     }
 
     #[test]
@@ -361,10 +367,18 @@ mod test {
         let source = "(1 + 2 + 3 return true < false";
         let mut parser = TestParser::from(source);
         let result = parser.parse();
-        assert_eq!(result, Err(ParseError::unexpected_token(1, "return")));
+        assert_eq!(
+            result,
+            Err(ParseError::unexpected_token(
+                1,
+                &TokenType::Identifier("return".to_string()),
+                &TokenType::RightParen
+            ))
+        );
         assert_eq!(
             parser.current(),
-            Some(Token::new(TokenType::Return, "return", 1)),
+            Some(Token::new(TokenType::Return, 1)),
         );
+    }
     }
 }
