@@ -1,14 +1,15 @@
 use crate::{
-    error::object_error::ObjectError, expr::Expr, object::Object, token::TokenType,
+    error::{lox_error::LoxError, runtime_error::RuntimeError},
+    expr::Expr,
+    object::Object,
+    token::TokenType,
     visitor::Visitor,
 };
-
-use std::fmt;
 
 #[derive(Default)]
 pub(crate) struct Interpreter;
 
-type InterpreterResult = Result<Object, RuntimeError>;
+type InterpreterResult = Result<Object, LoxError>;
 
 impl Interpreter {
     pub fn expr(&mut self, e: &Expr) -> InterpreterResult {
@@ -71,51 +72,3 @@ impl Visitor<InterpreterResult> for Interpreter {
         }
     }
 }
-
-#[derive(PartialEq)]
-pub(crate) enum RuntimeErrorType {
-    ObjectError(ObjectError),
-}
-
-impl RuntimeErrorType {
-    fn msg(&self) -> String {
-        match self {
-            RuntimeErrorType::ObjectError(e) => e.to_string(),
-        }
-    }
-}
-
-#[derive(PartialEq)]
-pub(crate) struct RuntimeError {
-    line: usize,
-    error_type: RuntimeErrorType,
-}
-
-impl RuntimeError {
-    pub fn new(line: usize, error_type: RuntimeErrorType) -> Self {
-        Self { line, error_type }
-    }
-}
-
-impl From<(usize, ObjectError)> for RuntimeError {
-    fn from(value: (usize, ObjectError)) -> Self {
-        Self {
-            line: value.0,
-            error_type: RuntimeErrorType::ObjectError(value.1),
-        }
-    }
-}
-
-impl fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.error_type.msg())
-    }
-}
-
-impl fmt::Debug for RuntimeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self)
-    }
-}
-
-impl std::error::Error for RuntimeError {}

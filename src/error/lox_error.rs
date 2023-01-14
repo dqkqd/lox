@@ -1,11 +1,12 @@
 use std::fmt;
 
-use super::{parse_error::ParseError, syntax_error::SyntaxError};
+use super::{parse_error::ParseError, runtime_error::RuntimeError, syntax_error::SyntaxError};
 
 #[derive(PartialEq)]
 pub(crate) enum LoxErrorType {
     ParseError(ParseError),
     SyntaxError(SyntaxError),
+    RuntimeError(RuntimeError),
 }
 
 impl LoxErrorType {
@@ -13,6 +14,7 @@ impl LoxErrorType {
         match self {
             LoxErrorType::SyntaxError(e) => format!("SyntaxError: {}", e.msg()),
             LoxErrorType::ParseError(e) => format!("ParseError: {}", e.msg()),
+            LoxErrorType::RuntimeError(e) => format!("RuntimeError: {}", e.msg()),
         }
     }
 }
@@ -51,6 +53,15 @@ impl From<ParseError> for LoxError {
         Self {
             line: error.line(),
             error_type: LoxErrorType::ParseError(error),
+        }
+    }
+}
+
+impl From<RuntimeError> for LoxError {
+    fn from(error: RuntimeError) -> Self {
+        Self {
+            line: error.line(),
+            error_type: LoxErrorType::RuntimeError(error),
         }
     }
 }
