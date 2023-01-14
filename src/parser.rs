@@ -14,7 +14,7 @@ type ParseResult<T> = Result<T, ParseError>;
 pub(crate) struct Parser {
     it: IntoIter<Token>,
     buffer: Vec<Token>,
-    _errors: Vec<ParseError>,
+    errors: Vec<ParseError>,
     eof_token: Token,
 }
 
@@ -33,13 +33,13 @@ impl Parser {
         Parser {
             it: tokens.into_iter(),
             buffer: Vec::with_capacity(16),
-            _errors: Vec::new(),
+            errors: Vec::new(),
             eof_token: _eof_token,
         }
     }
 
     pub fn had_error(&self) -> bool {
-        !self._errors.is_empty()
+        !self.errors.is_empty()
     }
 
     pub fn parse(&mut self) -> Vec<Stmt> {
@@ -53,11 +53,15 @@ impl Parser {
                 Ok(stmt) => statements.push(stmt),
                 Err(err) => {
                     self.synchronize();
-                    self._errors.push(err)
+                    self.errors.push(err)
                 }
             }
         }
         statements
+    }
+
+    pub fn errors(&self) -> &[ParseError] {
+        &self.errors
     }
 
     fn is_end(&self) -> bool {
