@@ -115,7 +115,7 @@ impl Neg for Object {
     type Output = ObjectOperationResult;
     fn neg(self) -> Self::Output {
         let result = self.as_number().ok_or_else(ObjectError::negative)?;
-        Ok(Object::Number(result))
+        Ok(Object::Number(-result))
     }
 }
 
