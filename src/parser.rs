@@ -5,6 +5,7 @@ use crate::{
     expr::{Binary, Expr, Grouping, Unary},
     object::Object,
     scanner::Scanner,
+    stmt::Stmt,
     token::{Token, TokenType},
 };
 
@@ -37,12 +38,26 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> ParseResult<Expr> {
-        let result = self.expresion();
-        if result.is_err() {
-            self.synchronize();
+    fn is_end(&self) -> bool {
+        self.buffer.is_empty() && self.it.len() == 0
+    }
+
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
+        loop {
+            if self.is_end() {
+                break;
+            }
+
+            match self.statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(err) => {
+                    self.synchronize();
+                    self._errors.push(err)
+                }
+            }
         }
-        result
+        statements
     }
 
     fn prev(&mut self, token: Token) {
@@ -57,7 +72,28 @@ impl Parser {
         }
     }
 
-    fn expresion(&mut self) -> ParseResult<Expr> {
+    fn statement(&mut self) -> ParseResult<Stmt> {
+        if self.match_token_type(&[TokenType::Print]).is_some() {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> ParseResult<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Print(expr))
+    }
+
+    fn expression_statement(&mut self) -> ParseResult<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Expression(expr))
+    }
+
+    // @todo this method currently pub, move this to private after all stmts are added
+    pub fn expression(&mut self) -> ParseResult<Expr> {
         self.equality()
     }
 
@@ -136,7 +172,7 @@ impl Parser {
                 TokenType::Number(number) => Ok(Expr::Literal(Object::Number(number))),
                 TokenType::String(string) => Ok(Expr::Literal(Object::String(string))),
                 TokenType::LeftParen => {
-                    let expr = self.expresion()?;
+                    let expr = self.expression()?;
                     self.consume(TokenType::RightParen)?;
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 }
@@ -244,7 +280,7 @@ mod test {
         let mut ast_repr = AstRepr::default();
         for (&src, expected) in std::iter::zip(sources, expected_results) {
             let mut parser = TestParser::from(src);
-            let result = parser.parse().map(|expr| ast_repr.expr(&expr));
+            let result = parser.expression().map(|expr| ast_repr.expr(&expr));
             assert_eq!(result.as_deref(), expected.as_deref());
         }
     }
@@ -349,7 +385,9 @@ mod test {
         // synchronize until semicolon, the next token should be `true`.
         let source = "(1 + 2 + 3 nothing; true < false";
         let mut parser = TestParser::from(source);
-        let result = parser.parse();
+        let result = parser.expression();
+        assert!(result.is_err());
+        parser.synchronize();
         assert_eq!(
             result,
             Err(ParseError::unexpected_token(
@@ -366,7 +404,9 @@ mod test {
         // synchronize until semicolon, the next token should be `return`.
         let source = "(1 + 2 + 3 return true < false";
         let mut parser = TestParser::from(source);
-        let result = parser.parse();
+        let result = parser.expression();
+        assert!(result.is_err());
+        parser.synchronize();
         assert_eq!(
             result,
             Err(ParseError::unexpected_token(
@@ -375,10 +415,6 @@ mod test {
                 &TokenType::RightParen
             ))
         );
-        assert_eq!(
-            parser.current(),
-            Some(Token::new(TokenType::Return, 1)),
-        );
-    }
+        assert_eq!(parser.current(), Some(Token::new(TokenType::Return, 1)),);
     }
 }

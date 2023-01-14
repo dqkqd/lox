@@ -20,4 +20,6 @@ pub(crate) mod visitor;
 
 pub(crate) mod interpreter;
 
+pub(crate) mod stmt;
+
 pub use cli::exec;

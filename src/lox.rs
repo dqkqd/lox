@@ -72,7 +72,7 @@ impl Lox {
         let mut parser = Parser::from(&scanner);
         let mut interpreter = Interpreter::default();
 
-        match parser.parse() {
+        match parser.expression() {
             Ok(e) => match interpreter.expr(&e) {
                 Ok(object) => println!("{}", object.to_string()),
                 Err(e) => {

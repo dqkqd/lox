@@ -81,7 +81,7 @@ mod test {
         scanner.scan_tokens();
         assert!(!scanner.had_error());
         let mut parser = Parser::from(&scanner);
-        let expr = parser.parse().unwrap();
+        let expr = parser.expression().unwrap();
         dbg!(&expr);
 
         let mut interpreter = Interpreter::default();
