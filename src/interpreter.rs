@@ -46,16 +46,16 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
                         Ok((lhs + rhs).map_err(|err| RuntimeError::from((line, err)))?)
                     }
                     TokenType::Greater => {
-                        Ok((lhs.ge(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
-                    }
-                    TokenType::GreaterEqual => {
                         Ok((lhs.gt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
                     }
+                    TokenType::GreaterEqual => {
+                        Ok((lhs.ge(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
                     TokenType::Less => {
-                        Ok((lhs.le(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.lt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
                     }
                     TokenType::LessEqual => {
-                        Ok((lhs.lt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.le(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
                     }
                     TokenType::BangEqual => {
                         Ok((lhs.ne(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)

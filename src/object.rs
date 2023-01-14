@@ -67,25 +67,25 @@ impl Object {
         }
     }
 
-    pub fn ge(&self, rhs: &Self) -> ObjectOperationResult {
+    pub fn gt(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs > rhs))
     }
 
-    pub fn le(&self, rhs: &Self) -> ObjectOperationResult {
+    pub fn lt(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs < rhs))
     }
 
-    pub fn gt(&self, rhs: &Self) -> ObjectOperationResult {
+    pub fn ge(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs >= rhs))
     }
 
-    pub fn lt(&self, rhs: &Self) -> ObjectOperationResult {
+    pub fn le(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs <= rhs))
