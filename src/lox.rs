@@ -9,8 +9,10 @@ pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let source = std::fs::read_to_string(path)
         .with_context(|| format!("Could not read file `{:?}`", path))?;
     lox.run(&source);
-    if lox.had_error {
+    if lox.had_scan_error || lox.had_parse_error {
         exit(65);
+    } else if lox.had_runtime_error {
+        exit(70);
     }
     Ok(())
 }
@@ -42,26 +44,28 @@ pub fn run_prompt(
 
 #[derive(Debug, Default)]
 pub(crate) struct Lox {
-    had_error: bool,
+    had_scan_error: bool,
+    had_parse_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Lox {
     fn reset_error(&mut self) {
-        self.had_error = false
+        self.had_scan_error = false;
+        self.had_parse_error = false;
+        self.had_runtime_error = false;
     }
 
     fn run(&mut self, source: &str) {
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
 
-        self.had_error = scanner.had_error();
+        self.had_scan_error = scanner.had_error();
 
-        if self.had_error {
+        if self.had_scan_error {
             for error in scanner.errors() {
                 println!("{:?}", error);
             }
-
-            // exit
             return;
         }
 
@@ -72,11 +76,13 @@ impl Lox {
             Ok(e) => match interpreter.expr(&e) {
                 Ok(object) => println!("{}", object.to_string()),
                 Err(e) => {
-                    println!("{}", e)
+                    self.had_runtime_error = true;
+                    println!("{:?}", e)
                 }
             },
             Err(e) => {
-                println!("{:?}", e)
+                self.had_parse_error = true;
+                println!("{:?}", e);
             }
         }
     }
