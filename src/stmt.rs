@@ -1,4 +1,4 @@
-use crate::expr::Expr;
+use crate::{expr::Expr, visitor::Visitor};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Stmt {
@@ -7,9 +7,9 @@ pub(crate) enum Stmt {
 }
 
 impl Stmt {
-    // pub fn walk_epxr<T>(&self, visitor: &mut impl Visitor<T>) -> T {
-    //     visitor.visit_expr(self)
-    // }
+    pub fn walk_stmt<E, S>(&self, visitor: &mut impl Visitor<E, S>) -> S {
+        visitor.visit_stmt(self)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

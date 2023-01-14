@@ -70,20 +70,12 @@ impl Lox {
         }
 
         let mut parser = Parser::from(&scanner);
-        let mut interpreter = Interpreter::default();
+        let statements = parser.parse();
+        self.had_parse_error = parser.had_error();
 
-        match parser.expression() {
-            Ok(e) => match interpreter.expr(&e) {
-                Ok(object) => println!("{}", object.to_string()),
-                Err(e) => {
-                    self.had_runtime_error = true;
-                    println!("{:?}", e)
-                }
-            },
-            Err(e) => {
-                self.had_parse_error = true;
-                println!("{:?}", e);
-            }
+        let mut interpreter = Interpreter::default();
+        if interpreter.interpret(&statements).is_err() {
+            self.had_runtime_error = true;
         }
     }
 }

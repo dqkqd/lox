@@ -1,21 +1,32 @@
 use crate::{
-    error::runtime_error::RuntimeError, expr::Expr, object::Object, token::TokenType,
+    error::runtime_error::RuntimeError, expr::Expr, object::Object, stmt::Stmt, token::TokenType,
     visitor::Visitor,
 };
 
 #[derive(Default)]
 pub(crate) struct Interpreter;
 
-type InterpreterResult = Result<Object, RuntimeError>;
+type InterpreterResult<T> = Result<T, RuntimeError>;
 
 impl Interpreter {
-    pub fn expr(&mut self, e: &Expr) -> InterpreterResult {
+    fn expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
         e.walk_epxr(self)
+    }
+
+    fn stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
+        s.walk_stmt(self)
+    }
+
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> InterpreterResult<()> {
+        for stmt in statements {
+            self.stmt(stmt)?;
+        }
+        Ok(())
     }
 }
 
-impl Visitor<InterpreterResult> for Interpreter {
-    fn visit_expr(&mut self, e: &Expr) -> InterpreterResult {
+impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
+    fn visit_expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
         match e {
             Expr::Binary(binary) => {
                 let lhs = self.visit_expr(&binary.left)?;
@@ -68,6 +79,20 @@ impl Visitor<InterpreterResult> for Interpreter {
             Expr::Grouping(group) => Ok(self.visit_expr(&group.expr)?),
         }
     }
+
+    fn visit_stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
+        match s {
+            Stmt::Expression(e) => {
+                self.visit_expr(e)?;
+            }
+            Stmt::Print(e) => {
+                let value = self.visit_expr(e)?;
+                // @todo, print to specific output stream
+                println!("{}", value.to_string());
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -76,7 +101,7 @@ mod test {
 
     use super::*;
 
-    fn interpret(source: &str) -> InterpreterResult {
+    fn interpret(source: &str) -> InterpreterResult<Object> {
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
         assert!(!scanner.had_error());
@@ -88,7 +113,7 @@ mod test {
         interpreter.expr(&expr)
     }
 
-    fn test_interpreter(sources: &[&str], expected_results: &[InterpreterResult]) {
+    fn test_interpreter(sources: &[&str], expected_results: &[InterpreterResult<Object>]) {
         for (&src, expected) in std::iter::zip(sources, expected_results) {
             let result = interpret(src);
             assert_eq!(&result, expected);

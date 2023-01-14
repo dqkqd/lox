@@ -9,7 +9,7 @@ pub(crate) enum Expr {
 }
 
 impl Expr {
-    pub fn walk_epxr<T>(&self, visitor: &mut impl Visitor<T>) -> T {
+    pub fn walk_epxr<E, S>(&self, visitor: &mut impl Visitor<E, S>) -> E {
         visitor.visit_expr(self)
     }
 }

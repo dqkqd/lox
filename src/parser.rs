@@ -38,8 +38,8 @@ impl Parser {
         }
     }
 
-    fn is_end(&self) -> bool {
-        self.buffer.is_empty() && self.it.len() == 0
+    pub fn had_error(&self) -> bool {
+        !self._errors.is_empty()
     }
 
     pub fn parse(&mut self) -> Vec<Stmt> {
@@ -58,6 +58,10 @@ impl Parser {
             }
         }
         statements
+    }
+
+    fn is_end(&self) -> bool {
+        self.buffer.is_empty() && self.it.len() == 0
     }
 
     fn prev(&mut self, token: Token) {

@@ -1,4 +1,4 @@
-use crate::{expr::Expr, object::Object, visitor::Visitor};
+use crate::{expr::Expr, object::Object, stmt::Stmt, visitor::Visitor};
 
 #[derive(Default)]
 pub(crate) struct AstRepr;
@@ -7,9 +7,13 @@ impl AstRepr {
     pub fn expr(&mut self, e: &Expr) -> String {
         e.walk_epxr(self)
     }
+
+    pub fn stmt(&mut self, s: &Stmt) -> String {
+        s.walk_stmt(self)
+    }
 }
 
-impl Visitor<String> for AstRepr {
+impl Visitor<String, String> for AstRepr {
     fn visit_expr(&mut self, e: &Expr) -> String {
         match e {
             Expr::Binary(binary) => {
@@ -32,6 +36,16 @@ impl Visitor<String> for AstRepr {
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);
                 format!("(group {expr})")
+            }
+        }
+    }
+
+    fn visit_stmt(&mut self, s: &Stmt) -> String {
+        match s {
+            Stmt::Expression(e) => self.visit_expr(e),
+            Stmt::Print(e) => {
+                let value = self.visit_expr(e);
+                format!("(print {})", value)
             }
         }
     }
