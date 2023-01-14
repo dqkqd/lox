@@ -5,7 +5,7 @@ use crate::{
     expr::{Binary, Expr, Grouping, Unary},
     lox_error::LoxError,
     object::Object,
-    scanner::ScanResult,
+    scanner::Scanner,
     token::{Token, TokenType},
 };
 
@@ -16,14 +16,15 @@ pub(crate) struct Parser {
     _eof_token: Token,
 }
 
-impl From<ScanResult> for Parser {
-    fn from(value: ScanResult) -> Self {
-        Parser::new(value.tokens)
+impl From<&Scanner> for Parser {
+    fn from(scanner: &Scanner) -> Self {
+        Parser::new(scanner.tokens())
     }
 }
 
 impl Parser {
-    fn new(mut tokens: Vec<Token>) -> Self {
+    fn new(tokens: &[Token]) -> Self {
+        let mut tokens: Vec<Token> = tokens.to_vec();
         let _eof_token = tokens
             .pop()
             .expect("TokenType::Eof must be the end of scan result");
