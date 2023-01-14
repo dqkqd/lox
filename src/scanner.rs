@@ -32,39 +32,7 @@ pub(crate) fn generate_static_reserved_keywords() -> HashMap<String, TokenType> 
     keywords
 }
 
-type R<T> = Result<T, SyntaxError>;
-
-#[derive(Default)]
-pub(crate) struct ScanResult {
-    pub tokens: Vec<Token>,
-
-    errors: Vec<SyntaxError>,
-}
-
-impl ScanResult {
-    fn add_token(&mut self, token: Token) {
-        self.tokens.push(token);
-    }
-
-    fn add_error(&mut self, error: SyntaxError) {
-        self.errors.push(error)
-    }
-
-    pub fn update(&mut self, result: R<Token>) {
-        match result {
-            Ok(token) => self.add_token(token),
-            Err(error) => self.add_error(error),
-        }
-    }
-
-    pub fn errors(&self) -> &[SyntaxError] {
-        self.errors.as_ref()
-    }
-
-    pub fn had_error(&self) -> bool {
-        !self.errors.is_empty()
-    }
-}
+type ScanResult<T> = Result<T, SyntaxError>;
 
 #[derive(Debug)]
 pub(crate) struct Scanner {
@@ -72,16 +40,32 @@ pub(crate) struct Scanner {
     line: usize,
     current: usize,
     reserved_keywords: HashMap<String, TokenType>,
+    tokens: Vec<Token>,
+    errors: Vec<SyntaxError>,
 }
 
 impl Scanner {
-    fn new(source: &str) -> Self {
+    pub fn new(source: &str) -> Self {
         Scanner {
             source: source.chars().collect(),
             line: 1,
             current: 0,
             reserved_keywords: generate_static_reserved_keywords(),
+            tokens: Vec::new(),
+            errors: Vec::new(),
         }
+    }
+
+    pub fn tokens(&self) -> &[Token] {
+        &self.tokens
+    }
+
+    pub fn errors(&self) -> &[SyntaxError] {
+        &self.errors
+    }
+
+    pub fn had_error(&self) -> bool {
+        !self.errors.is_empty()
     }
 
     fn prev(&mut self) {
@@ -121,7 +105,7 @@ impl Scanner {
         self.read_while(|c| c != '\n')
     }
 
-    fn string(&mut self) -> R<Token> {
+    fn string(&mut self) -> ScanResult<Token> {
         let string = self.read_while(|c| c != '"');
         match self.next() {
             Some(_) => Ok(self.make_token(&string, TokenType::String(string.clone()))),
@@ -162,7 +146,7 @@ impl Scanner {
         Token::new(token_type, lexeme, self.line)
     }
 
-    fn scan_token(&mut self, c: char) -> Option<R<Token>> {
+    fn scan_token(&mut self, c: char) -> Option<ScanResult<Token>> {
         let token = match c {
             // single lexeme
             '(' => self.make_token("(", TokenType::LeftParen),
@@ -264,23 +248,19 @@ impl Scanner {
         Some(Ok(token))
     }
 
-    fn scan_tokens(&mut self) -> ScanResult {
-        let mut scan_result = ScanResult::default();
+    pub fn scan_tokens(&mut self) {
         while let Some(c) = self.next() {
-            if let Some(r) = self.scan_token(c) {
-                scan_result.update(r);
+            if let Some(result) = self.scan_token(c) {
+                match result {
+                    Ok(token) => self.tokens.push(token),
+                    Err(err) => self.errors.push(err),
+                }
             }
         }
 
         let eof = self.make_token("", TokenType::Eof);
-        scan_result.add_token(eof);
-
-        scan_result
+        self.tokens.push(eof);
     }
-}
-
-pub(crate) fn scan(source: &str) -> ScanResult {
-    Scanner::new(source).scan_tokens()
 }
 
 #[cfg(test)]
@@ -289,9 +269,10 @@ mod test {
     use super::*;
 
     fn check(source: &str, expected_tokens: &[Token], expected_error: &[SyntaxError]) {
-        let scan_result = Scanner::new(source).scan_tokens();
-        assert_eq!(scan_result.tokens, expected_tokens);
-        assert_eq!(scan_result.errors, expected_error);
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        assert_eq!(scanner.tokens, expected_tokens);
+        assert_eq!(scanner.errors, expected_error);
     }
 
     #[test]
