@@ -1,27 +1,18 @@
 use std::fmt;
 
-use super::syntax_error::SyntaxError;
+use super::{parse_error::ParseError, syntax_error::SyntaxError};
 
 #[derive(PartialEq)]
 pub(crate) enum LoxErrorType {
-    ExpectedExpression,
-    UnexpectedToken(String),
-    ParserExpectToken(String, String),
-
+    ParseError(ParseError),
     SyntaxError(SyntaxError),
 }
 
 impl LoxErrorType {
     fn msg(&self) -> String {
         match self {
-            LoxErrorType::ParserExpectToken(found, expected) => {
-                format!("Expected `{}`. Found `{}`.", expected, found)
-            }
-            LoxErrorType::UnexpectedToken(found) => {
-                format!("Unexpected token `{}`.", found)
-            }
-            LoxErrorType::ExpectedExpression => "Expected expression".to_string(),
-            LoxErrorType::SyntaxError(s) => format!("SyntaxError: {}", s.msg()),
+            LoxErrorType::SyntaxError(e) => format!("SyntaxError: {}", e.msg()),
+            LoxErrorType::ParseError(e) => format!("ParseError: {}", e.msg()),
         }
     }
 }
@@ -30,12 +21,6 @@ impl LoxErrorType {
 pub(crate) struct LoxError {
     line: usize,
     error_type: LoxErrorType,
-}
-
-impl LoxError {
-    pub fn new(line: usize, error_type: LoxErrorType) -> Self {
-        Self { line, error_type }
-    }
 }
 
 impl fmt::Display for LoxError {
@@ -57,6 +42,15 @@ impl From<SyntaxError> for LoxError {
         Self {
             line: error.line(),
             error_type: LoxErrorType::SyntaxError(error),
+        }
+    }
+}
+
+impl From<ParseError> for LoxError {
+    fn from(error: ParseError) -> Self {
+        Self {
+            line: error.line(),
+            error_type: LoxErrorType::ParseError(error),
         }
     }
 }

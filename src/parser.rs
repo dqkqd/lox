@@ -1,8 +1,9 @@
 use std::vec::IntoIter;
 
 use crate::{
+    error::parse_error::ParseError,
     expr::{Binary, Expr, Grouping, Unary},
-    lox_error::{LoxError, LoxErrorType},
+    lox_error::LoxError,
     object::Object,
     scanner::ScanResult,
     token::{Token, TokenType},
@@ -134,36 +135,36 @@ impl Parser {
                 TokenType::String(string) => Ok(Expr::Literal(Object::String(string))),
                 TokenType::LeftParen => {
                     let expr = self.expresion()?;
-                    self.consume(TokenType::RightParen, ")")?;
+                    self.consume(TokenType::RightParen)?;
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 }
                 _ => {
-                    let error = LoxError::new(token.line(), LoxErrorType::ExpectedExpression);
+                    let error = LoxError::from(ParseError::expected_expression(token.line()));
                     self.prev(token);
                     Err(error)
                 }
             }
         } else {
-            let error = LoxError::new(self._eof_token.line(), LoxErrorType::ExpectedExpression);
-            Err(error)
+            Err(LoxError::from(ParseError::expected_expression(
+                self._eof_token.line(),
+            )))
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, lexeme: &str) -> Result<(), LoxError> {
+    fn consume(&mut self, token_type: TokenType) -> Result<(), LoxError> {
         if let Some(token) = self.next() {
             if token.token_type() != &token_type {
-                let error = LoxError::new(
-                    token.line(),
-                    LoxErrorType::ParserExpectToken(token.lexeme().to_string(), lexeme.to_string()),
-                );
+                let error =
+                    LoxError::from(ParseError::unexpected_token(token.line(), token.lexeme()));
                 self.prev(token);
                 Err(error)
             } else {
                 Ok(())
             }
         } else {
-            let error = LoxError::new(self._eof_token.line(), LoxErrorType::ExpectedExpression);
-            Err(error)
+            Err(LoxError::from(ParseError::expected_expression(
+                self._eof_token.line(),
+            )))
         }
     }
 
