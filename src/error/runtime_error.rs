@@ -21,16 +21,6 @@ pub(crate) struct RuntimeError {
     error_type: RuntimeErrorType,
 }
 
-impl RuntimeError {
-    pub fn line(&self) -> usize {
-        self.line
-    }
-
-    pub fn msg(&self) -> String {
-        self.error_type.msg()
-    }
-}
-
 impl From<(usize, ObjectError)> for RuntimeError {
     fn from(value: (usize, ObjectError)) -> Self {
         Self {
@@ -42,7 +32,12 @@ impl From<(usize, ObjectError)> for RuntimeError {
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[line {}]: {}", self.line, self.error_type.msg())
+        write!(
+            f,
+            "[line {}]: RuntimeError: {}",
+            self.line,
+            self.error_type.msg()
+        )
     }
 }
 

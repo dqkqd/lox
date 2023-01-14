@@ -1,15 +1,12 @@
 use crate::{
-    error::{lox_error::LoxError, runtime_error::RuntimeError},
-    expr::Expr,
-    object::Object,
-    token::TokenType,
+    error::runtime_error::RuntimeError, expr::Expr, object::Object, token::TokenType,
     visitor::Visitor,
 };
 
 #[derive(Default)]
 pub(crate) struct Interpreter;
 
-type InterpreterResult = Result<Object, LoxError>;
+type InterpreterResult = Result<Object, RuntimeError>;
 
 impl Interpreter {
     pub fn expr(&mut self, e: &Expr) -> InterpreterResult {
