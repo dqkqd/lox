@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::{
     error::syntax_error::SyntaxError,
-    lox_error::LoxError,
     object::Number,
     token::{Token, TokenType},
 };
@@ -33,10 +32,13 @@ pub(crate) fn generate_static_reserved_keywords() -> HashMap<String, TokenType> 
     keywords
 }
 
+type R<T> = Result<T, SyntaxError>;
+
 #[derive(Default)]
 pub(crate) struct ScanResult {
     pub tokens: Vec<Token>,
-    errors: Vec<LoxError>,
+
+    errors: Vec<SyntaxError>,
 }
 
 impl ScanResult {
@@ -44,18 +46,18 @@ impl ScanResult {
         self.tokens.push(token);
     }
 
-    fn add_error(&mut self, error: LoxError) {
+    fn add_error(&mut self, error: SyntaxError) {
         self.errors.push(error)
     }
 
-    pub fn update(&mut self, result: Result<Token, LoxError>) {
+    pub fn update(&mut self, result: R<Token>) {
         match result {
             Ok(token) => self.add_token(token),
             Err(error) => self.add_error(error),
         }
     }
 
-    pub fn errors(&self) -> &[LoxError] {
+    pub fn errors(&self) -> &[SyntaxError] {
         self.errors.as_ref()
     }
 
@@ -119,11 +121,11 @@ impl Scanner {
         self.read_while(|c| c != '\n')
     }
 
-    fn string(&mut self) -> Result<Token, LoxError> {
+    fn string(&mut self) -> R<Token> {
         let string = self.read_while(|c| c != '"');
         match self.next() {
             Some(_) => Ok(self.make_token(&string, TokenType::String(string.clone()))),
-            None => Err(LoxError::from(SyntaxError::unterminated_string(self.line))),
+            None => Err(SyntaxError::unterminated_string(self.line)),
         }
     }
 
@@ -160,7 +162,7 @@ impl Scanner {
         Token::new(token_type, lexeme, self.line)
     }
 
-    fn scan_token(&mut self, c: char) -> Option<Result<Token, LoxError>> {
+    fn scan_token(&mut self, c: char) -> Option<R<Token>> {
         let token = match c {
             // single lexeme
             '(' => self.make_token("(", TokenType::LeftParen),
@@ -254,9 +256,7 @@ impl Scanner {
                         self.identifier()
                     }
                     false => {
-                        return Some(Err(LoxError::from(SyntaxError::unexpected_character(
-                            self.line, c,
-                        ))));
+                        return Some(Err(SyntaxError::unexpected_character(self.line, c)));
                     }
                 },
             },
@@ -288,7 +288,7 @@ mod test {
 
     use super::*;
 
-    fn check(source: &str, expected_tokens: &[Token], expected_error: &[LoxError]) {
+    fn check(source: &str, expected_tokens: &[Token], expected_error: &[SyntaxError]) {
         let scan_result = Scanner::new(source).scan_tokens();
         assert_eq!(scan_result.tokens, expected_tokens);
         assert_eq!(scan_result.errors, expected_error);
@@ -369,7 +369,7 @@ mod test {
     fn scan_string_with_error() {
         let source = "\"unterminated string";
         let tokens = [Token::new(TokenType::Eof, "", 1)];
-        let errors = [LoxError::from(SyntaxError::unterminated_string(1))];
+        let errors = [SyntaxError::unterminated_string(1)];
         check(source, &tokens, &errors);
     }
 
@@ -451,8 +451,8 @@ mod test {
         let source = "@#";
         let tokens = [Token::new(TokenType::Eof, "", 1)];
         let errors = [
-            LoxError::from(SyntaxError::unexpected_character(1, '@')),
-            LoxError::from(SyntaxError::unexpected_character(1, '#')),
+            SyntaxError::unexpected_character(1, '@'),
+            SyntaxError::unexpected_character(1, '#'),
         ];
         check(source, &tokens, &errors);
     }

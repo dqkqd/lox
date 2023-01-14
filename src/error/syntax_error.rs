@@ -24,14 +24,6 @@ pub(crate) struct SyntaxError {
 }
 
 impl SyntaxError {
-    pub fn line(&self) -> usize {
-        self.line
-    }
-
-    pub fn msg(&self) -> String {
-        self.error_type.msg()
-    }
-
     pub fn unterminated_string(line: usize) -> Self {
         Self {
             line,
@@ -49,7 +41,12 @@ impl SyntaxError {
 
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[line {}]: {}", self.line, self.error_type.msg())
+        write!(
+            f,
+            "[line {}]: SyntaxError: {}",
+            self.line,
+            self.error_type.msg()
+        )
     }
 }
 
