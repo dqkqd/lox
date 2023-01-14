@@ -1,7 +1,6 @@
-use std::{
-    fmt,
-    ops::{Add, Div, Mul, Neg, Sub},
-};
+use std::ops::{Add, Div, Mul, Neg, Sub};
+
+use crate::error::object_error::ObjectError;
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
@@ -71,40 +70,32 @@ impl Object {
     pub fn ge(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+            .ok_or_else(ObjectError::comparision_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
         Ok(Object::Bool(lhs > rhs))
     }
 
     pub fn le(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+            .ok_or_else(ObjectError::comparision_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
         Ok(Object::Bool(lhs < rhs))
     }
 
     pub fn gt(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+            .ok_or_else(ObjectError::comparision_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
         Ok(Object::Bool(lhs >= rhs))
     }
 
     pub fn lt(&self, rhs: &Self) -> ObjectOperationResult {
         let lhs = self
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::ComparisionError))?;
+            .ok_or_else(ObjectError::comparision_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
         Ok(Object::Bool(lhs <= rhs))
     }
 
@@ -131,9 +122,7 @@ impl ToString for Object {
 impl Neg for Object {
     type Output = ObjectOperationResult;
     fn neg(self) -> Self::Output {
-        let result = self
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::NegativeError))?;
+        let result = self.as_number().ok_or_else(ObjectError::negative_error)?;
         Ok(Object::Number(result))
     }
 }
@@ -154,12 +143,8 @@ impl Add for Object {
 impl Sub for Object {
     type Output = ObjectOperationResult;
     fn sub(self, rhs: Self) -> Self::Output {
-        let lhs = self
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::SubtractError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::SubtractError))?;
+        let lhs = self.as_number().ok_or_else(ObjectError::subtract_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::subtract_error)?;
         Ok(Object::Number(lhs - rhs))
     }
 }
@@ -169,10 +154,10 @@ impl Mul for Object {
     fn mul(self, rhs: Self) -> Self::Output {
         let lhs = self
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::MultipleError))?;
+            .ok_or_else(ObjectError::multiplication_error)?;
         let rhs = rhs
             .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::MultipleError))?;
+            .ok_or_else(ObjectError::multiplication_error)?;
         Ok(Object::Number(lhs * rhs))
     }
 }
@@ -180,64 +165,8 @@ impl Mul for Object {
 impl Div for Object {
     type Output = ObjectOperationResult;
     fn div(self, rhs: Self) -> Self::Output {
-        let lhs = self
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::DivisionError))?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(|| ObjectError::new(ObjectErrorType::DivisionError))?;
+        let lhs = self.as_number().ok_or_else(ObjectError::division_error)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::division_error)?;
         Ok(Object::Number(lhs / rhs))
     }
 }
-
-#[derive(PartialEq)]
-pub(crate) enum ObjectErrorType {
-    // simple error for all case
-    Error(&'static str),
-
-    ComparisionError,
-    NegativeError,
-    SubtractError,
-    MultipleError,
-    DivisionError,
-}
-
-impl ObjectErrorType {
-    fn msg(&self) -> String {
-        match self {
-            ObjectErrorType::Error(s) => s.to_string(),
-            ObjectErrorType::ComparisionError => {
-                "Could not compare non-number together".to_string()
-            }
-            ObjectErrorType::NegativeError => "Could not negative non-number".to_string(),
-            ObjectErrorType::SubtractError => "Could not subtract non-number".to_string(),
-            ObjectErrorType::MultipleError => "Could not multiply non-number".to_string(),
-            ObjectErrorType::DivisionError => "Could not divide non-number".to_string(),
-        }
-    }
-}
-
-#[derive(PartialEq)]
-pub(crate) struct ObjectError {
-    error_type: ObjectErrorType,
-}
-
-impl ObjectError {
-    pub fn new(error_type: ObjectErrorType) -> Self {
-        Self { error_type }
-    }
-}
-
-impl fmt::Display for ObjectError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.error_type.msg())
-    }
-}
-
-impl fmt::Debug for ObjectError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self)
-    }
-}
-
-impl std::error::Error for ObjectError {}

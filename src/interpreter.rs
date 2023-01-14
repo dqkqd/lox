@@ -1,7 +1,5 @@
 use crate::{
-    expr::Expr,
-    object::{Object, ObjectError},
-    token::TokenType,
+    error::object_error::ObjectError, expr::Expr, object::Object, token::TokenType,
     visitor::Visitor,
 };
 
