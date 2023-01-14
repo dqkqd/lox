@@ -2,23 +2,21 @@ use std::fmt;
 
 #[derive(PartialEq)]
 pub(crate) enum ObjectErrorType {
-    ComparisionError,
-    NegativeError,
-    SubtractError,
-    MultiplicationError,
-    DivisionError,
+    Comparision,
+    Negative,
+    Subtract,
+    Multiplication,
+    Division,
 }
 
 impl ObjectErrorType {
     fn msg(&self) -> String {
         match self {
-            ObjectErrorType::ComparisionError => {
-                "Could not compare non-number together".to_string()
-            }
-            ObjectErrorType::NegativeError => "Could not negative non-number".to_string(),
-            ObjectErrorType::SubtractError => "Could not subtract non-number".to_string(),
-            ObjectErrorType::MultiplicationError => "Could not multiply non-number".to_string(),
-            ObjectErrorType::DivisionError => "Could not divide non-number".to_string(),
+            ObjectErrorType::Comparision => "Could not compare non-number together".to_string(),
+            ObjectErrorType::Negative => "Could not negative non-number".to_string(),
+            ObjectErrorType::Subtract => "Could not subtract non-number".to_string(),
+            ObjectErrorType::Multiplication => "Could not multiply non-number".to_string(),
+            ObjectErrorType::Division => "Could not divide non-number".to_string(),
         }
     }
 }
@@ -29,33 +27,33 @@ pub(crate) struct ObjectError {
 }
 
 impl ObjectError {
-    pub fn comparision_error() -> Self {
+    pub fn comparision() -> Self {
         Self {
-            error_type: ObjectErrorType::ComparisionError,
+            error_type: ObjectErrorType::Comparision,
         }
     }
 
-    pub fn negative_error() -> Self {
+    pub fn negative() -> Self {
         Self {
-            error_type: ObjectErrorType::NegativeError,
+            error_type: ObjectErrorType::Negative,
         }
     }
 
-    pub fn subtract_error() -> Self {
+    pub fn subtract() -> Self {
         Self {
-            error_type: ObjectErrorType::SubtractError,
+            error_type: ObjectErrorType::Subtract,
         }
     }
 
-    pub fn multiplication_error() -> Self {
+    pub fn multiplication() -> Self {
         Self {
-            error_type: ObjectErrorType::MultiplicationError,
+            error_type: ObjectErrorType::Multiplication,
         }
     }
 
-    pub fn division_error() -> Self {
+    pub fn division() -> Self {
         Self {
-            error_type: ObjectErrorType::DivisionError,
+            error_type: ObjectErrorType::Division,
         }
     }
 }

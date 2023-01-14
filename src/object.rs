@@ -68,34 +68,26 @@ impl Object {
     }
 
     pub fn ge(&self, rhs: &Self) -> ObjectOperationResult {
-        let lhs = self
-            .as_number()
-            .ok_or_else(ObjectError::comparision_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs > rhs))
     }
 
     pub fn le(&self, rhs: &Self) -> ObjectOperationResult {
-        let lhs = self
-            .as_number()
-            .ok_or_else(ObjectError::comparision_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs < rhs))
     }
 
     pub fn gt(&self, rhs: &Self) -> ObjectOperationResult {
-        let lhs = self
-            .as_number()
-            .ok_or_else(ObjectError::comparision_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs >= rhs))
     }
 
     pub fn lt(&self, rhs: &Self) -> ObjectOperationResult {
-        let lhs = self
-            .as_number()
-            .ok_or_else(ObjectError::comparision_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::comparision)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::comparision)?;
         Ok(Object::Bool(lhs <= rhs))
     }
 
@@ -122,7 +114,7 @@ impl ToString for Object {
 impl Neg for Object {
     type Output = ObjectOperationResult;
     fn neg(self) -> Self::Output {
-        let result = self.as_number().ok_or_else(ObjectError::negative_error)?;
+        let result = self.as_number().ok_or_else(ObjectError::negative)?;
         Ok(Object::Number(result))
     }
 }
@@ -143,8 +135,8 @@ impl Add for Object {
 impl Sub for Object {
     type Output = ObjectOperationResult;
     fn sub(self, rhs: Self) -> Self::Output {
-        let lhs = self.as_number().ok_or_else(ObjectError::subtract_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::subtract_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::subtract)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::subtract)?;
         Ok(Object::Number(lhs - rhs))
     }
 }
@@ -152,12 +144,8 @@ impl Sub for Object {
 impl Mul for Object {
     type Output = ObjectOperationResult;
     fn mul(self, rhs: Self) -> Self::Output {
-        let lhs = self
-            .as_number()
-            .ok_or_else(ObjectError::multiplication_error)?;
-        let rhs = rhs
-            .as_number()
-            .ok_or_else(ObjectError::multiplication_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::multiplication)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::multiplication)?;
         Ok(Object::Number(lhs * rhs))
     }
 }
@@ -165,8 +153,8 @@ impl Mul for Object {
 impl Div for Object {
     type Output = ObjectOperationResult;
     fn div(self, rhs: Self) -> Self::Output {
-        let lhs = self.as_number().ok_or_else(ObjectError::division_error)?;
-        let rhs = rhs.as_number().ok_or_else(ObjectError::division_error)?;
+        let lhs = self.as_number().ok_or_else(ObjectError::division)?;
+        let rhs = rhs.as_number().ok_or_else(ObjectError::division)?;
         Ok(Object::Number(lhs / rhs))
     }
 }
