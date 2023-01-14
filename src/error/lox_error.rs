@@ -1,24 +1,19 @@
 use std::fmt;
 
+use super::syntax_error::SyntaxError;
+
 #[derive(PartialEq)]
 pub(crate) enum LoxErrorType {
-    // scanner error
-    UnterminatedString,
-
-    // parser error
     ExpectedExpression,
-    UnexpectedCharacter(char),
     UnexpectedToken(String),
     ParserExpectToken(String, String),
+
+    SyntaxError(SyntaxError),
 }
 
 impl LoxErrorType {
     fn msg(&self) -> String {
         match self {
-            LoxErrorType::UnterminatedString => "Unterminated string".to_string(),
-            LoxErrorType::UnexpectedCharacter(c) => {
-                format!("Unexpected character `{}`", c)
-            }
             LoxErrorType::ParserExpectToken(found, expected) => {
                 format!("Expected `{}`. Found `{}`.", expected, found)
             }
@@ -26,6 +21,7 @@ impl LoxErrorType {
                 format!("Unexpected token `{}`.", found)
             }
             LoxErrorType::ExpectedExpression => "Expected expression".to_string(),
+            LoxErrorType::SyntaxError(s) => format!("SyntaxError: {}", s.msg()),
         }
     }
 }
@@ -55,3 +51,12 @@ impl fmt::Debug for LoxError {
 }
 
 impl std::error::Error for LoxError {}
+
+impl From<SyntaxError> for LoxError {
+    fn from(error: SyntaxError) -> Self {
+        Self {
+            line: error.line(),
+            error_type: LoxErrorType::SyntaxError(error),
+        }
+    }
+}

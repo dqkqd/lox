@@ -1,8 +1,8 @@
 use std::vec::IntoIter;
 
 use crate::{
-    error::{LoxError, LoxErrorType},
     expr::{Binary, Expr, Grouping, Unary},
+    lox_error::{LoxError, LoxErrorType},
     object::Object,
     scanner::ScanResult,
     token::{Token, TokenType},
@@ -37,7 +37,6 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Expr, LoxError> {
         let result = self.expresion();
         if result.is_err() {
-            dbg!(&result);
             self.synchronize();
         }
         result

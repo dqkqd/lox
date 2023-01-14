@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::{LoxError, LoxErrorType},
+    error::syntax_error::SyntaxError,
+    lox_error::LoxError,
     object::Number,
     token::{Token, TokenType},
 };
@@ -122,7 +123,7 @@ impl Scanner {
         let string = self.read_while(|c| c != '"');
         match self.next() {
             Some(_) => Ok(self.make_token(&string, TokenType::String(string.clone()))),
-            None => Err(LoxError::new(self.line, LoxErrorType::UnterminatedString)),
+            None => Err(LoxError::from(SyntaxError::unterminated_string(self.line))),
         }
     }
 
@@ -253,10 +254,9 @@ impl Scanner {
                         self.identifier()
                     }
                     false => {
-                        return Some(Err(LoxError::new(
-                            self.line,
-                            LoxErrorType::UnexpectedCharacter(c),
-                        )))
+                        return Some(Err(LoxError::from(SyntaxError::unexpected_character(
+                            self.line, c,
+                        ))));
                     }
                 },
             },
@@ -369,7 +369,7 @@ mod test {
     fn scan_string_with_error() {
         let source = "\"unterminated string";
         let tokens = [Token::new(TokenType::Eof, "", 1)];
-        let errors = [LoxError::new(1, LoxErrorType::UnterminatedString)];
+        let errors = [LoxError::from(SyntaxError::unterminated_string(1))];
         check(source, &tokens, &errors);
     }
 
@@ -451,8 +451,8 @@ mod test {
         let source = "@#";
         let tokens = [Token::new(TokenType::Eof, "", 1)];
         let errors = [
-            LoxError::new(1, LoxErrorType::UnexpectedCharacter('@')),
-            LoxError::new(1, LoxErrorType::UnexpectedCharacter('#')),
+            LoxError::from(SyntaxError::unexpected_character(1, '@')),
+            LoxError::from(SyntaxError::unexpected_character(1, '#')),
         ];
         check(source, &tokens, &errors);
     }
