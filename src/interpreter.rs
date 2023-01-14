@@ -8,7 +8,7 @@ use std::fmt;
 #[derive(Default)]
 pub(crate) struct Interpreter;
 
-type InterpreterResult = Result<Object, InterpreterError>;
+type InterpreterResult = Result<Object, RuntimeError>;
 
 impl Interpreter {
     pub fn expr(&mut self, e: &Expr) -> InterpreterResult {
@@ -22,24 +22,46 @@ impl Visitor<InterpreterResult> for Interpreter {
             Expr::Binary(binary) => {
                 let lhs = self.visit_expr(&binary.left)?;
                 let rhs = self.visit_expr(&binary.right)?;
+                let line = binary.operator.line();
                 match binary.operator.token_type() {
-                    TokenType::Minus => Ok((lhs - rhs).map_err(InterpreterError::from)?),
-                    TokenType::Star => Ok((lhs * rhs).map_err(InterpreterError::from)?),
-                    TokenType::Slash => Ok((lhs / rhs).map_err(InterpreterError::from)?),
-                    TokenType::Plus => Ok((lhs + rhs).map_err(InterpreterError::from)?),
-                    TokenType::Greater => Ok((lhs.ge(&rhs)).map_err(InterpreterError::from)?),
-                    TokenType::GreaterEqual => Ok((lhs.gt(&rhs)).map_err(InterpreterError::from)?),
-                    TokenType::Less => Ok((lhs.le(&rhs)).map_err(InterpreterError::from)?),
-                    TokenType::LessEqual => Ok((lhs.lt(&rhs)).map_err(InterpreterError::from)?),
-                    TokenType::BangEqual => Ok((lhs.ne(&rhs)).map_err(InterpreterError::from)?),
-                    TokenType::EqualEqual => Ok((lhs.eq(&rhs)).map_err(InterpreterError::from)?),
+                    TokenType::Minus => {
+                        Ok((lhs - rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::Star => {
+                        Ok((lhs * rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::Slash => {
+                        Ok((lhs / rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::Plus => {
+                        Ok((lhs + rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::Greater => {
+                        Ok((lhs.ge(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::GreaterEqual => {
+                        Ok((lhs.gt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::Less => {
+                        Ok((lhs.le(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::LessEqual => {
+                        Ok((lhs.lt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::BangEqual => {
+                        Ok((lhs.ne(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
+                    TokenType::EqualEqual => {
+                        Ok((lhs.eq(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                    }
                     _ => unimplemented!(),
                 }
             }
             Expr::Unary(unary) => {
                 let rhs = self.visit_expr(&unary.right)?;
+                let line = unary.operator.line();
                 match unary.operator.token_type() {
-                    TokenType::Minus => Ok((-rhs).map_err(InterpreterError::from)?),
+                    TokenType::Minus => Ok((-rhs).map_err(|err| RuntimeError::from((line, err)))?),
                     TokenType::Bang => Ok(Object::Bool(!rhs.is_truthy())),
                     _ => unimplemented!(),
                 }
@@ -51,47 +73,49 @@ impl Visitor<InterpreterResult> for Interpreter {
 }
 
 #[derive(PartialEq)]
-pub(crate) enum InterpreterErrorType {
-    // simple error for all case
-    Error(String),
+pub(crate) enum RuntimeErrorType {
+    ObjectError(ObjectError),
 }
 
-impl InterpreterErrorType {
+impl RuntimeErrorType {
     fn msg(&self) -> String {
         match self {
-            InterpreterErrorType::Error(s) => s.to_string(),
+            RuntimeErrorType::ObjectError(e) => e.to_string(),
         }
     }
 }
 
 #[derive(PartialEq)]
-pub(crate) struct InterpreterError {
-    error_type: InterpreterErrorType,
+pub(crate) struct RuntimeError {
+    line: usize,
+    error_type: RuntimeErrorType,
 }
 
-impl InterpreterError {
-    pub fn new(error_type: InterpreterErrorType) -> Self {
-        Self { error_type }
+impl RuntimeError {
+    pub fn new(line: usize, error_type: RuntimeErrorType) -> Self {
+        Self { line, error_type }
     }
 }
 
-impl From<ObjectError> for InterpreterError {
-    fn from(value: ObjectError) -> Self {
+impl From<(usize, ObjectError)> for RuntimeError {
+    fn from(value: (usize, ObjectError)) -> Self {
         Self {
-            error_type: InterpreterErrorType::Error(value.to_string()),
+            line: value.0,
+            error_type: RuntimeErrorType::ObjectError(value.1),
         }
     }
 }
-impl fmt::Display for InterpreterError {
+
+impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.error_type.msg())
     }
 }
 
-impl fmt::Debug for InterpreterError {
+impl fmt::Debug for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self)
     }
 }
 
-impl std::error::Error for InterpreterError {}
+impl std::error::Error for RuntimeError {}
