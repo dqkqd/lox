@@ -42,24 +42,6 @@ impl Parser {
         !self.errors.is_empty()
     }
 
-    pub fn parse(&mut self) -> Vec<Stmt> {
-        let mut statements = Vec::new();
-        loop {
-            if self.is_end() {
-                break;
-            }
-
-            match self.statement() {
-                Ok(stmt) => statements.push(stmt),
-                Err(err) => {
-                    self.synchronize();
-                    self.errors.push(err)
-                }
-            }
-        }
-        statements
-    }
-
     pub fn errors(&self) -> &[ParseError] {
         &self.errors
     }
@@ -78,6 +60,24 @@ impl Parser {
         } else {
             self.it.next()
         }
+    }
+
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
+        loop {
+            if self.is_end() {
+                break;
+            }
+
+            match self.statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(err) => {
+                    self.synchronize();
+                    self.errors.push(err)
+                }
+            }
+        }
+        statements
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {
