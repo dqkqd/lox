@@ -13,7 +13,7 @@ pub(crate) struct Parser {
     it: IntoIter<Token>,
     buffer: Vec<Token>,
     _errors: Vec<LoxError>,
-    _eof_token: Token,
+    eof_token: Token,
 }
 
 impl From<&Scanner> for Parser {
@@ -32,7 +32,7 @@ impl Parser {
             it: tokens.into_iter(),
             buffer: Vec::with_capacity(16),
             _errors: Vec::new(),
-            _eof_token,
+            eof_token: _eof_token,
         }
     }
 
@@ -147,7 +147,7 @@ impl Parser {
             }
         } else {
             Err(LoxError::from(ParseError::expected_expression(
-                self._eof_token.line(),
+                self.eof_token.line(),
             )))
         }
     }
@@ -164,7 +164,7 @@ impl Parser {
             }
         } else {
             Err(LoxError::from(ParseError::expected_expression(
-                self._eof_token.line(),
+                self.eof_token.line(),
             )))
         }
     }
