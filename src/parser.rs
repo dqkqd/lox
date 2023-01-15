@@ -636,5 +636,29 @@ mod test {
             let expected_errors = [ParseError::invalid_assignment(2).without_panic()];
             test_parser(source, &expected_statements, &expected_errors)
         }
+
+        #[test]
+        fn block_statement() {
+            let source = "
+            {
+                {
+                    var x = 1;
+                }
+                var x = 2;
+            }
+
+            {
+                1 + 2;
+            ";
+
+            let expected_statements =
+                ["Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))"];
+            let expected_errors = [ParseError::unexpected_token(
+                11,
+                &TokenType::Eof,
+                &TokenType::RightBrace,
+            )];
+            test_parser(source, &expected_statements, &expected_errors)
+        }
     }
 }
