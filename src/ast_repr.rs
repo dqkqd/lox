@@ -11,6 +11,14 @@ impl AstRepr {
     pub fn stmt(&mut self, s: &Stmt) -> String {
         s.walk_stmt(self)
     }
+
+    pub fn repr(&mut self, statements: &[Stmt]) -> String {
+        statements
+            .iter()
+            .map(|stmt| self.stmt(stmt))
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
 }
 
 impl Visitor<String, String> for AstRepr {

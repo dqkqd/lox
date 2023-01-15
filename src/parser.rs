@@ -332,327 +332,242 @@ impl Parser {
 #[cfg(test)]
 mod test {
 
-    use std::ops::{Deref, DerefMut};
+    use std::io::Write;
 
     use crate::ast_repr::AstRepr;
 
     use super::*;
 
-    struct TestParser {
-        parser: Parser,
+    fn test_parser_2(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+        let mut result = Vec::new();
+
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        for error in scanner.errors() {
+            writeln!(&mut result, "{:?}", error)?;
+        }
+
+        let mut parser = Parser::from(&scanner);
+        let mut ast_repr = AstRepr::default();
+        let statements = parser.parse();
+        writeln!(&mut result, "{}", ast_repr.repr(&statements))?;
+        for error in parser.errors() {
+            writeln!(&mut result, "{:?}", error)?;
+        }
+
+        let result = String::from_utf8(result).unwrap();
+        assert_eq!(result.trim(), expected_output.trim());
+
+        Ok(())
     }
 
-    impl From<&str> for TestParser {
-        fn from(source: &str) -> Self {
-            let mut scanner = Scanner::new(source);
-            scanner.scan_tokens();
-            assert!(!scanner.had_error());
-            TestParser {
-                parser: Parser::from(&scanner),
-            }
-        }
+    #[test]
+    fn primary() -> Result<(), std::io::Error> {
+        let source = "
+nil; true; false; \"this is string\";
+123; 123.456; (nil); variable;
+";
+        let expected_output = "
+Stmt::Expr(nil)
+Stmt::Expr(true)
+Stmt::Expr(false)
+Stmt::Expr(\"this is string\")
+Stmt::Expr(123)
+Stmt::Expr(123.456)
+Stmt::Expr(Expr::Group(nil))
+Stmt::Expr(Expr::Variable(variable))
+";
+        test_parser_2(source, expected_output)
     }
 
-    impl Deref for TestParser {
-        type Target = Parser;
-        fn deref(&self) -> &Self::Target {
-            &self.parser
-        }
+    #[test]
+    fn goupring_must_be_closed() -> Result<(), std::io::Error> {
+        let source = "(1";
+        let expected_output = "[line 1]: ParseError: Expected `)`. Found `EOF`";
+        test_parser_2(source, expected_output)
     }
 
-    impl DerefMut for TestParser {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.parser
-        }
+    #[test]
+    fn unary() -> Result<(), std::io::Error> {
+        let source = "
+-1.2; !1.2; 
+-\"a\"; !\"a\";
+-nil; !nil;
+-true; !true;
+-false; !false;
+-(1.2); !(1.2);
+-x; !x;
+";
+        let expected_output = " 
+Stmt::Expr(Expr::Unary(- 1.2))
+Stmt::Expr(Expr::Unary(! 1.2))
+Stmt::Expr(Expr::Unary(- \"a\"))
+Stmt::Expr(Expr::Unary(! \"a\"))
+Stmt::Expr(Expr::Unary(- nil))
+Stmt::Expr(Expr::Unary(! nil))
+Stmt::Expr(Expr::Unary(- true))
+Stmt::Expr(Expr::Unary(! true))
+Stmt::Expr(Expr::Unary(- false))
+Stmt::Expr(Expr::Unary(! false))
+Stmt::Expr(Expr::Unary(- Expr::Group(1.2)))
+Stmt::Expr(Expr::Unary(! Expr::Group(1.2)))
+Stmt::Expr(Expr::Unary(- Expr::Variable(x)))
+Stmt::Expr(Expr::Unary(! Expr::Variable(x)))
+";
+        test_parser_2(source, expected_output)
     }
 
-    mod test_expression {
-
-        use super::*;
-
-        fn test_parser(sources: &[&str], expected_results: &[ParseResult<&str>]) {
-            let mut ast_repr = AstRepr::default();
-            for (&src, expected) in std::iter::zip(sources, expected_results) {
-                let mut parser = TestParser::from(src);
-                let result = parser.expression().map(|expr| ast_repr.expr(&expr));
-                assert_eq!(result.as_deref(), expected.as_deref());
-            }
-        }
-
-        #[test]
-        fn consume_without_error() -> ParseResult<()> {
-            let source = "(";
-            let mut parser = TestParser::from(source);
-            parser.consume(TokenType::LeftParen)?;
-            assert!(parser.is_end());
-            Ok(())
-        }
-
-        #[test]
-        fn consume_with_error() -> ParseResult<()> {
-            let source = ")";
-            let mut parser = TestParser::from(source);
-            let expected_token = TokenType::LeftParen;
-            let error = ParseError::unexpected_token(1, &TokenType::RightParen, &expected_token);
-            assert_eq!(parser.consume(expected_token), Err(error));
-            assert!(!parser.is_end());
-            Ok(())
-        }
-
-        #[test]
-        fn primary() {
-            let sources = [
-                "nil",
-                "true",
-                "false",
-                "\"this is string\"",
-                "123",
-                "123.456",
-                "(nil)",
-                "(1",
-                "variable",
-            ];
-            let expected_results = [
-                Ok("nil"),
-                Ok("true"),
-                Ok("false"),
-                Ok("\"this is string\""),
-                Ok("123"),
-                Ok("123.456"),
-                Ok("Expr::Group(nil)"),
-                Err(ParseError::unexpected_token(
-                    1,
-                    &TokenType::Eof,
-                    &TokenType::RightParen,
-                )),
-                Ok("Expr::Variable(variable)"),
-            ];
-            test_parser(&sources, &expected_results);
-        }
-
-        #[test]
-        fn unary() {
-            let sources = [
-                "-1.2", "-\"a\"", "-nil", "-true", "-false", "!1", "!\"a\"", "!nil", "!true",
-                "!false", "-(1.2)", "-x", "!x",
-            ];
-            let expected_results = [
-                Ok("Expr::Unary(- 1.2)"),
-                Ok("Expr::Unary(- \"a\")"),
-                Ok("Expr::Unary(- nil)"),
-                Ok("Expr::Unary(- true)"),
-                Ok("Expr::Unary(- false)"),
-                Ok("Expr::Unary(! 1)"),
-                Ok("Expr::Unary(! \"a\")"),
-                Ok("Expr::Unary(! nil)"),
-                Ok("Expr::Unary(! true)"),
-                Ok("Expr::Unary(! false)"),
-                Ok("Expr::Unary(- Expr::Group(1.2))"),
-                Ok("Expr::Unary(- Expr::Variable(x))"),
-                Ok("Expr::Unary(! Expr::Variable(x))"),
-            ];
-            test_parser(&sources, &expected_results);
-        }
-
-        #[test]
-        fn binary() {
-            let source = [
-                "1+2",
-                "3 - 7",
-                "true * false",
-                "nil / nil",
-                "\"a\" == \"b\" ",
-                "nil != nil",
-                "3 > 7",
-                "true >= false",
-                "2 < 3",
-                "true <= true",
-                "x + y",
-            ];
-            let expected_results = [
-                Ok("Expr::Binary(1 + 2)"),
-                Ok("Expr::Binary(3 - 7)"),
-                Ok("Expr::Binary(true * false)"),
-                Ok("Expr::Binary(nil / nil)"),
-                Ok("Expr::Binary(\"a\" == \"b\")"),
-                Ok("Expr::Binary(nil != nil)"),
-                Ok("Expr::Binary(3 > 7)"),
-                Ok("Expr::Binary(true >= false)"),
-                Ok("Expr::Binary(2 < 3)"),
-                Ok("Expr::Binary(true <= true)"),
-                Ok("Expr::Binary(Expr::Variable(x) + Expr::Variable(y))"),
-            ];
-            test_parser(&source, &expected_results);
-        }
-
-        #[test]
-        fn assignment() {
-            let sources = [
-                "x = 1;",
-                "x = \"string\";",
-                "x = true;",
-                "x = nil;",
-                "x = y;",
-                "x = y",
-            ];
-            let expected_results = [
-                Ok("Expr::Assign(x = 1)"),
-                Ok("Expr::Assign(x = \"string\")"),
-                Ok("Expr::Assign(x = true)"),
-                Ok("Expr::Assign(x = nil)"),
-                Ok("Expr::Assign(x = Expr::Variable(y))"),
-                Ok("Expr::Assign(x = Expr::Variable(y))"),
-            ];
-            test_parser(&sources, &expected_results);
-        }
-
-        #[test]
-        fn synchronize_with_semicolon() {
-            // synchronize until semicolon, the next token should be `true`.
-            let source = "(1 + 2 + 3 nothing; true < false";
-            let mut parser = TestParser::from(source);
-            let result = parser.expression();
-            assert!(result.is_err());
-            parser.synchronize();
-            assert_eq!(
-                result,
-                Err(ParseError::unexpected_token(
-                    1,
-                    &TokenType::Identifier("nothing".to_string()),
-                    &TokenType::RightParen
-                ))
-            );
-            assert_eq!(parser.peek(), &Token::new(TokenType::True, 1));
-        }
-
-        #[test]
-        fn synchronize_without_semicolon() {
-            // synchronize until semicolon, the next token should be `return`.
-            let source = "(1 + 2 + 3 return true < false";
-            let mut parser = TestParser::from(source);
-            let result = parser.expression();
-            assert!(result.is_err());
-            parser.synchronize();
-            assert_eq!(
-                result,
-                Err(ParseError::unexpected_token(
-                    1,
-                    &TokenType::Identifier("return".to_string()),
-                    &TokenType::RightParen
-                ))
-            );
-            assert_eq!(parser.peek(), &Token::new(TokenType::Return, 1));
-        }
+    #[test]
+    fn binary() -> Result<(), std::io::Error> {
+        let source = "
+1+2; 3-7; true*false; nil/nil;
+\"a\" == \"b\"; nil != nil; 3 > 7; true >= false; 2 < 3; true <= false; 
+";
+        let expected_output = "
+Stmt::Expr(Expr::Binary(1 + 2))
+Stmt::Expr(Expr::Binary(3 - 7))
+Stmt::Expr(Expr::Binary(true * false))
+Stmt::Expr(Expr::Binary(nil / nil))
+Stmt::Expr(Expr::Binary(\"a\" == \"b\"))
+Stmt::Expr(Expr::Binary(nil != nil))
+Stmt::Expr(Expr::Binary(3 > 7))
+Stmt::Expr(Expr::Binary(true >= false))
+Stmt::Expr(Expr::Binary(2 < 3))
+Stmt::Expr(Expr::Binary(true <= false))
+";
+        test_parser_2(source, expected_output)
     }
 
-    mod test_statement {
+    #[test]
+    fn assignment() -> Result<(), std::io::Error> {
+        let source = "
+x = 1; x = \"string\"; x = true; x = nil; x = y; 
+x = y
+";
+        let expected_output = "
+Stmt::Expr(Expr::Assign(x = 1))
+Stmt::Expr(Expr::Assign(x = \"string\"))
+Stmt::Expr(Expr::Assign(x = true))
+Stmt::Expr(Expr::Assign(x = nil))
+Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
+[line 4]: ParseError: Expected `;`. Found `EOF`";
 
-        use super::*;
+        test_parser_2(source, expected_output)
+    }
 
-        fn test_parser(source: &str, expected_statements: &[&str], expected_errors: &[ParseError]) {
-            let mut ast_repr = AstRepr::default();
-            let mut parser = TestParser::from(source);
-            let statements = parser
-                .parse()
-                .iter()
-                .map(|s| ast_repr.stmt(s))
-                .collect::<Vec<_>>();
-            assert_eq!(statements, expected_statements);
-            assert_eq!(parser.errors(), expected_errors);
-        }
+    #[test]
+    fn synchronize_with_semicolon() -> Result<(), std::io::Error> {
+        // synchronize until semicolon, the next token should be `true`.
+        let source = "
+(1 + 2 nothing; 
+true < false;
+";
+        let expected_output = "
+Stmt::Expr(Expr::Binary(true < false))
+[line 2]: ParseError: Expected `)`. Found `nothing`
+";
+        test_parser_2(source, expected_output)
+    }
 
-        #[test]
-        fn multiple_expressions_with_errors() {
-            let source = "
+    #[test]
+    fn synchronize_without_semicolon() -> Result<(), std::io::Error> {
+        // synchronize until semicolon, `1` should be eaten, the next token should be `var`.
+        let source = "(1 + 2 1 var";
+        let expected_output = "
+[line 1]: ParseError: Expected `)`. Found `1`
+[line 1]: ParseError: Expected `variable name`. Found `EOF`
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn multiexpressions_with_errors() -> Result<(), std::io::Error> {
+        let source = "
             \"has semicolon\";
             (\"no right paren\";
             (\"has right paren\");
             \"no semicolon\"";
-            let expected_statements = [
-                "Stmt::Expr(\"has semicolon\")",
-                "Stmt::Expr(Expr::Group(\"has right paren\"))",
-            ];
-            let expected_errors = [
-                ParseError::unexpected_token(3, &TokenType::Semicolon, &TokenType::RightParen),
-                ParseError::unexpected_token(5, &TokenType::Eof, &TokenType::Semicolon),
-            ];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
 
-        #[test]
-        fn print_expression_with_errors() {
-            let source = "
+        let expected_output = "
+Stmt::Expr(\"has semicolon\")
+Stmt::Expr(Expr::Group(\"has right paren\"))
+[line 3]: ParseError: Expected `)`. Found `;`
+[line 5]: ParseError: Expected `;`. Found `EOF`
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn print_expression_without_semicolon() -> Result<(), std::io::Error> {
+        let source = "
             print \"statement\";
             print \"statement without semicolon\"
             print 1 + 2;";
-            let expected_statements = [
-                "Stmt::Print(\"statement\")",
-                "Stmt::Print(Expr::Binary(1 + 2))",
-            ];
-            let expected_errors = [ParseError::unexpected_token(
-                4,
-                &TokenType::Print,
-                &TokenType::Semicolon,
-            )];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
 
-        #[test]
-        fn variable_declaration_statement() {
-            let source = "
+        let expected_output = "
+Stmt::Print(\"statement\")
+Stmt::Print(Expr::Binary(1 + 2))
+[line 4]: ParseError: Expected `;`. Found `print`
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn variable_declaration_statement() -> Result<(), std::io::Error> {
+        let source = "
             var x = 1; 
             var x = y + 1;
             var x
             print x;
             ";
-            let expected_statements = [
-                "Stmt::Var(x = 1)",
-                "Stmt::Var(x = Expr::Binary(Expr::Variable(y) + 1))",
-                "Stmt::Print(Expr::Variable(x))",
-            ];
-            let expected_errors = [ParseError::unexpected_token(
-                5,
-                &TokenType::Print,
-                &TokenType::Semicolon,
-            )];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
 
-        #[test]
-        fn assignment_statement() {
-            let source = "
+        let expected_output = "
+Stmt::Var(x = 1)
+Stmt::Var(x = Expr::Binary(Expr::Variable(y) + 1))
+Stmt::Print(Expr::Variable(x))
+[line 5]: ParseError: Expected `;`. Found `print`
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn assignment_statement() -> Result<(), std::io::Error> {
+        let source = "
             var x = 1;
             x = 2;
             x = y;
             \"this is not assignment\" = 2
             ";
-            let expected_statements = [
-                "Stmt::Var(x = 1)",
-                "Stmt::Expr(Expr::Assign(x = 2))",
-                "Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))",
-            ];
-            let expected_errors = [ParseError::invalid_assignment(5).without_panic()];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
 
-        #[test]
-        fn assignment_statement_dont_run_to_panic_mode() {
-            let source = "
+        let expected_output = "
+Stmt::Var(x = 1)
+Stmt::Expr(Expr::Assign(x = 2))
+Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
+[line 5]: ParseError: Inavalid assignment target.
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn assignment_statement_dont_run_to_panic_mode() -> Result<(), std::io::Error> {
+        let source = "
             2 = 1 // this has error
             \"this token should not be eaten\";
             true;
             ";
-            let expected_statements = [
-                "Stmt::Expr(\"this token should not be eaten\")",
-                "Stmt::Expr(true)",
-            ];
-            let expected_errors = [ParseError::invalid_assignment(2).without_panic()];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
 
-        #[test]
-        fn block_statement() {
-            let source = "
+        let expected_output = "
+Stmt::Expr(\"this token should not be eaten\")
+Stmt::Expr(true)
+[line 2]: ParseError: Inavalid assignment target.
+";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn block_statement() -> Result<(), std::io::Error> {
+        let source = "
+            // nested block
             {
                 {
                     var x = 1;
@@ -664,19 +579,16 @@ mod test {
                 1 + 2;
             ";
 
-            let expected_statements =
-                ["Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))"];
-            let expected_errors = [ParseError::unexpected_token(
-                11,
-                &TokenType::Eof,
-                &TokenType::RightBrace,
-            )];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
+        let expected_output = "
+Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))
+[line 12]: ParseError: Expected `}`. Found `EOF`
+";
+        test_parser_2(source, expected_output)
+    }
 
-        #[test]
-        fn if_statement() {
-            let source = "
+    #[test]
+    fn if_statement() -> Result<(), std::io::Error> {
+        let source = "
             // normal
             if (true) var x = 1;
             else var x = 2;
@@ -686,12 +598,11 @@ mod test {
                 if (2) 3;
                 else 4;
             ";
-            let expected_statements = [
-                "Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))",
-                "Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))",
-            ];
-            let expected_errors = [];
-            test_parser(source, &expected_statements, &expected_errors)
-        }
+
+        let expected_output = "
+Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))
+Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))
+";
+        test_parser_2(source, expected_output)
     }
 }
