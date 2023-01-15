@@ -83,14 +83,14 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
                 .environment
                 .get(&var.name)
                 .cloned()
-                .ok_or_else(|| RuntimeError::undefined_variable(var.name.line(), &var.name)),
+                .ok_or_else(|| RuntimeError::undefined_variable(&var.name)),
             Expr::Assign(assign) => {
                 let name = &assign.name;
                 let value = self.visit_expr(&assign.value)?;
                 self.environment
                     .assign(name, value)
                     .cloned()
-                    .ok_or_else(|| RuntimeError::undefined_variable(name.line(), name))
+                    .ok_or_else(|| RuntimeError::undefined_variable(name))
             }
         }
     }

@@ -26,9 +26,9 @@ pub(crate) struct RuntimeError {
 }
 
 impl RuntimeError {
-    pub fn undefined_variable(line: usize, token: &Token) -> Self {
+    pub fn undefined_variable(token: &Token) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: RuntimeErrorType::UndefinedVariable(token.lexeme().to_string()),
         }
     }
