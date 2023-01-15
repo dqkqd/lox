@@ -51,12 +51,6 @@ pub(crate) enum TokenType {
     Eof,
 }
 
-impl TokenType {
-    pub fn is_identifier(&self) -> bool {
-        matches!(self, TokenType::Identifier(_))
-    }
-}
-
 impl From<Token> for TokenType {
     fn from(value: Token) -> Self {
         value.token_type

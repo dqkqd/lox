@@ -14,7 +14,6 @@ type ParseResult<T> = Result<T, ParseError>;
 pub(crate) struct Parser {
     it: Peekable<IntoIter<Token>>,
     errors: Vec<ParseError>,
-    eof_token: Token,
 }
 
 impl From<&Scanner> for Parser {
@@ -24,15 +23,11 @@ impl From<&Scanner> for Parser {
 }
 
 impl Parser {
+    #[allow(clippy::unnecessary_to_owned)]
     fn new(tokens: &[Token]) -> Self {
-        let mut tokens: Vec<Token> = tokens.to_vec();
-        let _eof_token = tokens
-            .pop()
-            .expect("TokenType::Eof must be the end of scan result");
         Parser {
-            it: tokens.into_iter().peekable(),
+            it: tokens.to_vec().into_iter().peekable(),
             errors: Vec::new(),
-            eof_token: _eof_token,
         }
     }
 
@@ -45,29 +40,33 @@ impl Parser {
     }
 
     fn is_end(&self) -> bool {
-        self.it.len() == 0
+        self.it.len() == 1 // the last one if eof
     }
 
-    fn peek(&mut self) -> Option<&Token> {
-        self.it.peek()
+    fn peek(&mut self) -> &Token {
+        // we always have 1 element left, so we can safety unwrap
+        self.it.peek().unwrap()
     }
 
-    fn peek_type(&mut self) -> Option<&TokenType> {
-        self.peek().map(|token| token.token_type())
+    fn peek_type(&mut self) -> &TokenType {
+        self.peek().token_type()
     }
 
     fn next(&mut self) -> Option<Token> {
-        self.it.next()
+        if self.is_end() {
+            None
+        } else {
+            self.it.next()
+        }
     }
 
-    fn match_peek_type(&mut self, token_type: &[TokenType]) -> bool {
-        self.peek_type()
-            .map(|t| token_type.iter().any(|lexeme| lexeme == t))
-            .unwrap_or_default()
+    fn match_peek_type(&mut self, tokens_type: &[TokenType]) -> bool {
+        let token_type = self.peek_type();
+        tokens_type.iter().any(|lexeme| lexeme == token_type)
     }
 
-    fn match_peek_type_then_advance(&mut self, token_type: &[TokenType]) -> Option<Token> {
-        if self.match_peek_type(token_type) {
+    fn match_peek_type_then_advance(&mut self, tokens_type: &[TokenType]) -> Option<Token> {
+        if self.match_peek_type(tokens_type) {
             self.next()
         } else {
             None
@@ -106,8 +105,8 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
-        if let Some(token) = self.peek() {
-            if token.token_type().is_identifier() {
+        match self.peek_type() {
+            TokenType::Identifier(_) => {
                 let token = self.next().unwrap();
                 let initializer = match self
                     .match_peek_type_then_advance(&[TokenType::Equal])
@@ -118,16 +117,15 @@ impl Parser {
                 };
                 self.consume(TokenType::Semicolon)?;
                 Ok(Stmt::Var(Var::new(token, initializer)))
-            } else {
+            }
+            _ => {
                 let error = ParseError::unexpected_token(
-                    token.line(),
-                    token.token_type(),
+                    self.peek().line(),
+                    self.peek_type(),
                     &TokenType::Identifier("variable name".to_string()),
                 );
                 Err(error)
             }
-        } else {
-            Err(ParseError::expected_expression(self.eof_token.line()))
         }
     }
 
@@ -155,8 +153,8 @@ impl Parser {
 
     fn block(&mut self) -> ParseResult<Stmt> {
         let mut statements = Vec::new();
-        while let Some(token_type) = self.peek_type() {
-            if token_type == &TokenType::RightBrace {
+        loop {
+            if self.is_end() || self.peek_type() == &TokenType::RightBrace {
                 break;
             }
             statements.push(self.declaration()?);
@@ -250,11 +248,7 @@ impl Parser {
     }
 
     fn primary(&mut self) -> ParseResult<Expr> {
-        if self.is_end() {
-            return Err(ParseError::expected_expression(self.eof_token.line()));
-        }
-
-        let expr = match self.peek_type().unwrap() {
+        let expr = match self.peek_type() {
             TokenType::Nil => Expr::Literal(Object::Null),
             TokenType::False => Expr::Literal(Object::Bool(false)),
             TokenType::True => Expr::Literal(Object::Bool(true)),
@@ -266,30 +260,24 @@ impl Parser {
                 self.consume(TokenType::RightParen)?;
                 return Ok(Expr::Grouping(Grouping::new(expr)));
             }
-            TokenType::Identifier(_) => Expr::Variable(Variable::new(self.peek().unwrap().clone())),
+            TokenType::Identifier(_) => Expr::Variable(Variable::new(self.peek().clone())),
             _ => {
-                let error = ParseError::expected_expression(self.peek().unwrap().line());
+                let error = ParseError::expected_expression(self.peek().line());
                 return Err(error);
             }
         };
-
         self.next();
         Ok(expr)
     }
 
     fn consume(&mut self, token_type: TokenType) -> ParseResult<()> {
-        let current_token = match self.peek() {
-            Some(token) => token,
-            None => &self.eof_token,
-        };
-
-        if current_token.token_type() == &token_type {
+        if self.peek_type() == &token_type {
             self.next(); // consume
             Ok(())
         } else {
             Err(ParseError::unexpected_token(
-                current_token.line(),
-                current_token.token_type(),
+                self.peek().line(),
+                self.peek_type(),
                 &token_type,
             ))
         }
@@ -308,12 +296,12 @@ impl Parser {
             TokenType::Return,
         ];
 
-        while let Some(token_type) = self.peek_type() {
-            if token_type == &TokenType::Semicolon {
-                self.next(); // skip semicolon
+        loop {
+            if self.is_end() || self.match_peek_type(&start_token_type) {
                 break;
             }
-            if self.match_peek_type(&start_token_type) {
+            if &TokenType::Semicolon == self.peek_type() {
+                self.next(); // eat semicolon
                 break;
             }
             self.next();
@@ -376,7 +364,7 @@ mod test {
             let source = "(";
             let mut parser = TestParser::from(source);
             parser.consume(TokenType::LeftParen)?;
-            assert!(parser.peek().is_none());
+            assert!(parser.is_end());
             Ok(())
         }
 
@@ -387,7 +375,7 @@ mod test {
             let expected_token = TokenType::LeftParen;
             let error = ParseError::unexpected_token(1, &TokenType::RightParen, &expected_token);
             assert_eq!(parser.consume(expected_token), Err(error));
-            assert!(parser.peek().is_some());
+            assert!(!parser.is_end());
             Ok(())
         }
 
@@ -514,7 +502,7 @@ mod test {
                     &TokenType::RightParen
                 ))
             );
-            assert_eq!(parser.peek(), Some(&Token::new(TokenType::True, 1)),);
+            assert_eq!(parser.peek(), &Token::new(TokenType::True, 1));
         }
 
         #[test]
@@ -533,7 +521,7 @@ mod test {
                     &TokenType::RightParen
                 ))
             );
-            assert_eq!(parser.peek(), Some(&Token::new(TokenType::Return, 1)));
+            assert_eq!(parser.peek(), &Token::new(TokenType::Return, 1));
         }
     }
 
