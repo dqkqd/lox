@@ -42,8 +42,9 @@ pub fn run_prompt(
     Ok(())
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct Lox {
+    interpreter: Interpreter,
     had_scan_error: bool,
     had_parse_error: bool,
     had_runtime_error: bool,
@@ -79,8 +80,7 @@ impl Lox {
             return;
         }
 
-        let mut interpreter = Interpreter::default();
-        let result = interpreter.interpret(&statements);
+        let result = self.interpreter.interpret(&statements);
         if result.is_err() {
             self.had_runtime_error = true;
             println!("{:?}", result.unwrap_err());
