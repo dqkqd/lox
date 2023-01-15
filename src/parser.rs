@@ -5,7 +5,7 @@ use crate::{
     expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Stmt, Var},
+    stmt::{Block, Stmt, Var},
     token::{Token, TokenType},
 };
 
@@ -130,6 +130,8 @@ impl Parser {
     fn statement(&mut self) -> ParseResult<Stmt> {
         if self.match_token_type(&[TokenType::Print]).is_some() {
             self.print_statement()
+        } else if self.match_token_type(&[TokenType::LeftBrace]).is_some() {
+            self.block()
         } else {
             self.expression_statement()
         }
@@ -139,6 +141,20 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Print(expr))
+    }
+
+    fn block(&mut self) -> ParseResult<Stmt> {
+        let mut statements = Vec::new();
+        while let Some(token) = self.next() {
+            if token.token_type() == &TokenType::RightBrace {
+                self.prev(token);
+                break;
+            }
+            self.prev(token);
+            statements.push(self.declaration()?);
+        }
+        self.consume(TokenType::RightBrace)?;
+        Ok(Stmt::Block(Block::new(statements)))
     }
 
     fn expression_statement(&mut self) -> ParseResult<Stmt> {

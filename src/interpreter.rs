@@ -110,6 +110,13 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
                 let name = var.identifier.lexeme();
                 self.environment.define(name, value);
             }
+            Stmt::Block(block) => {
+                self.environment.move_to_inner();
+                for stmt in &block.statements {
+                    self.stmt(stmt)?;
+                }
+                self.environment.move_to_outer();
+            }
         }
         Ok(())
     }

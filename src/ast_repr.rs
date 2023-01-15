@@ -62,6 +62,15 @@ impl Visitor<String, String> for AstRepr {
                 let value = self.visit_expr(&var.expression);
                 format!("Stmt::Var({} = {})", name, value)
             }
+            Stmt::Block(block) => {
+                let mut result = String::new();
+                result.push_str("Stmt::Block(");
+                for stmt in &block.statements {
+                    result.push_str(&self.visit_stmt(stmt));
+                }
+                result.push(')');
+                result
+            }
         }
     }
 }

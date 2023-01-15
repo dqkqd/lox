@@ -5,6 +5,7 @@ pub(crate) enum Stmt {
     Expression(Expr),
     Print(Expr),
     Var(Var),
+    Block(Block),
 }
 
 impl Stmt {
@@ -47,5 +48,16 @@ impl Var {
             identifier,
             expression,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct Block {
+    pub statements: Vec<Stmt>,
+}
+
+impl Block {
+    pub fn new(statements: Vec<Stmt>) -> Self {
+        Self { statements }
     }
 }
