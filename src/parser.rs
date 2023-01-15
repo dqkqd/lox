@@ -69,7 +69,7 @@ impl Parser {
                 break;
             }
 
-            match self.statement() {
+            match self.declaration() {
                 Ok(stmt) => statements.push(stmt),
                 Err(err) => {
                     self.synchronize();
@@ -78,6 +78,37 @@ impl Parser {
             }
         }
         statements
+    }
+
+    fn declaration(&mut self) -> ParseResult<Stmt> {
+        if self.match_token_type(&[TokenType::Var]).is_some() {
+            self.var_declaration()
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> ParseResult<Stmt> {
+        if let Some(token) = self.next() {
+            if token.token_type().is_identifier() {
+                let initializer = match self.match_token_type(&[TokenType::Equal]).is_some() {
+                    true => self.expression()?,
+                    false => Expr::Literal(Object::Null),
+                };
+                self.consume(TokenType::Semicolon)?;
+                Ok(Stmt::Var(Var::new(token, initializer)))
+            } else {
+                let error = ParseError::unexpected_token(
+                    token.line(),
+                    token.token_type(),
+                    &TokenType::Identifier("variable name".to_string()),
+                );
+                self.prev(token);
+                Err(error)
+            }
+        } else {
+            Err(ParseError::expected_expression(self.eof_token.line()))
+        }
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {
@@ -333,6 +364,7 @@ mod test {
                 "123.456",
                 "(nil)",
                 "(1",
+                "variable",
             ];
             let expected_results = [
                 Ok("nil"),
@@ -347,6 +379,7 @@ mod test {
                     &TokenType::Eof,
                     &TokenType::RightParen,
                 )),
+                Ok("Expr::Variable(variable)"),
             ];
             test_parser(&sources, &expected_results);
         }
@@ -355,7 +388,7 @@ mod test {
         fn unary() {
             let sources = [
                 "-1.2", "-\"a\"", "-nil", "-true", "-false", "!1", "!\"a\"", "!nil", "!true",
-                "!false", "-(1.2)",
+                "!false", "-(1.2)", "-x", "!x",
             ];
             let expected_results = [
                 Ok("Expr::Unary(- 1.2)"),
@@ -368,6 +401,9 @@ mod test {
                 Ok("Expr::Unary(! nil)"),
                 Ok("Expr::Unary(! true)"),
                 Ok("Expr::Unary(! false)"),
+                Ok("Expr::Unary(- Expr::Group(1.2))"),
+                Ok("Expr::Unary(- Expr::Variable(x))"),
+                Ok("Expr::Unary(! Expr::Variable(x))"),
             ];
             test_parser(&sources, &expected_results);
         }
@@ -385,6 +421,7 @@ mod test {
                 "true >= false",
                 "2 < 3",
                 "true <= true",
+                "x + y",
             ];
             let expected_results = [
                 Ok("Expr::Binary(1 + 2)"),
@@ -397,6 +434,7 @@ mod test {
                 Ok("Expr::Binary(true >= false)"),
                 Ok("Expr::Binary(2 < 3)"),
                 Ok("Expr::Binary(true <= true)"),
+                Ok("Expr::Binary(Expr::Variable(x) + Expr::Variable(y))"),
             ];
             test_parser(&source, &expected_results);
         }
@@ -486,6 +524,27 @@ mod test {
             ];
             let expected_errors = [ParseError::unexpected_token(
                 4,
+                &TokenType::Print,
+                &TokenType::Semicolon,
+            )];
+            test_parser(source, &expected_statements, &expected_errors)
+        }
+
+        #[test]
+        fn variable_declaration_statement() {
+            let source = "
+            var x = 1; 
+            var x = y + 1;
+            var x
+            print x;
+            ";
+            let expected_statements = [
+                "Stmt::Var(x = 1)",
+                "Stmt::Var(x = Expr::Binary(Expr::Variable(y) + 1))",
+                "Stmt::Print(Expr::Variable(x))",
+            ];
+            let expected_errors = [ParseError::unexpected_token(
+                5,
                 &TokenType::Print,
                 &TokenType::Semicolon,
             )];
