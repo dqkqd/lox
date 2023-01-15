@@ -30,4 +30,19 @@ impl Environment {
             .as_mut()
             .and_then(|env| env.assign(token, value))
     }
+
+    pub fn move_to_inner(&mut self) {
+        // move current to fresh environment which's parent is the old one
+        let mut outer_environment = Environment::default();
+        std::mem::swap(self, &mut outer_environment);
+        self.parent = Some(Box::new(outer_environment));
+    }
+
+    pub fn move_to_outer(&mut self) {
+        // discard current environment and move to parent
+        let outer = self.parent.take();
+        if let Some(mut outer) = outer {
+            std::mem::swap(self, &mut outer)
+        }
+    }
 }
