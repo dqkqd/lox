@@ -2,10 +2,10 @@ use std::vec::IntoIter;
 
 use crate::{
     error::parse_error::ParseError,
-    expr::{Binary, Expr, Grouping, Unary},
+    expr::{Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::Stmt,
+    stmt::{Stmt, Var},
     token::{Token, TokenType},
 };
 
@@ -184,6 +184,7 @@ impl Parser {
                     self.consume(TokenType::RightParen)?;
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 }
+                TokenType::Identifier(_) => Ok(Expr::Variable(Variable::new(token))),
                 _ => {
                     let error = ParseError::expected_expression(token.line());
                     self.prev(token);

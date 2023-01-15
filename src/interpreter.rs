@@ -1,10 +1,12 @@
 use crate::{
-    error::runtime_error::RuntimeError, expr::Expr, object::Object, stmt::Stmt, token::TokenType,
-    visitor::Visitor,
+    environment::Environment, error::runtime_error::RuntimeError, expr::Expr, object::Object,
+    stmt::Stmt, token::TokenType, visitor::Visitor,
 };
 
 #[derive(Default)]
-pub(crate) struct Interpreter;
+pub(crate) struct Interpreter {
+    environment: Environment,
+}
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
 
@@ -77,6 +79,11 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
             }
             Expr::Literal(object) => Ok(object.clone()),
             Expr::Grouping(group) => Ok(self.visit_expr(&group.expr)?),
+            Expr::Variable(var) => self
+                .environment
+                .get(&var.name)
+                .cloned()
+                .ok_or_else(|| RuntimeError::undefined_variable(var.name.line(), &var.name)),
         }
     }
 
@@ -89,6 +96,11 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
                 let value = self.visit_expr(e)?;
                 // @todo, print to specific output stream
                 println!("{}", value.to_string());
+            }
+            Stmt::Var(var) => {
+                let value = self.visit_expr(&var.expression)?;
+                let name = var.identifier.lexeme();
+                self.environment.define(name, value);
             }
         }
         Ok(())

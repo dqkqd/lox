@@ -37,6 +37,9 @@ impl Visitor<String, String> for AstRepr {
                 let expr = self.visit_expr(&group.expr);
                 format!("Expr::Group({expr})")
             }
+            Expr::Variable(var) => {
+                format!("Expr::Variable({})", var.name.lexeme())
+            }
         }
     }
 
@@ -49,6 +52,11 @@ impl Visitor<String, String> for AstRepr {
             Stmt::Print(e) => {
                 let value = self.visit_expr(e);
                 format!("Stmt::Print({})", value)
+            }
+            Stmt::Var(var) => {
+                let name = var.identifier.lexeme();
+                let value = self.visit_expr(&var.expression);
+                format!("Stmt::Var({} = {})", name, value)
             }
         }
     }

@@ -1,16 +1,20 @@
 use std::fmt;
 
+use crate::token::Token;
+
 use super::object_error::ObjectError;
 
 #[derive(PartialEq)]
 pub(crate) enum RuntimeErrorType {
     ObjectError(ObjectError),
+    UndefinedVariable(String),
 }
 
 impl RuntimeErrorType {
     fn msg(&self) -> String {
         match self {
             RuntimeErrorType::ObjectError(e) => e.to_string(),
+            RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{}`", name),
         }
     }
 }
@@ -19,6 +23,15 @@ impl RuntimeErrorType {
 pub(crate) struct RuntimeError {
     line: usize,
     error_type: RuntimeErrorType,
+}
+
+impl RuntimeError {
+    pub fn undefined_variable(line: usize, token: &Token) -> Self {
+        Self {
+            line,
+            error_type: RuntimeErrorType::UndefinedVariable(token.lexeme().to_string()),
+        }
+    }
 }
 
 impl From<(usize, ObjectError)> for RuntimeError {

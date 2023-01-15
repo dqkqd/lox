@@ -6,6 +6,7 @@ pub(crate) enum Expr {
     Unary(Unary),
     Literal(Object),
     Grouping(Grouping),
+    Variable(Variable),
 }
 
 impl Expr {
@@ -56,5 +57,16 @@ impl Grouping {
         Grouping {
             expr: Box::new(expr),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Variable {
+    pub name: Token,
+}
+
+impl Variable {
+    pub fn new(name: Token) -> Self {
+        Variable { name }
     }
 }

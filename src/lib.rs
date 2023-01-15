@@ -22,4 +22,6 @@ pub(crate) mod interpreter;
 
 pub(crate) mod stmt;
 
+pub(crate) mod environment;
+
 pub use cli::exec;
