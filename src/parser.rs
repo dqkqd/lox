@@ -2,7 +2,7 @@ use std::vec::IntoIter;
 
 use crate::{
     error::parse_error::ParseError,
-    expr::{Binary, Expr, Grouping, Unary, Variable},
+    expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
     stmt::{Stmt, Var},
@@ -86,7 +86,9 @@ impl Parser {
             match self.declaration() {
                 Ok(stmt) => statements.push(stmt),
                 Err(err) => {
-                    self.synchronize();
+                    if err.panic() {
+                        self.synchronize();
+                    }
                     self.errors.push(err)
                 }
             }
@@ -147,7 +149,22 @@ impl Parser {
 
     // @todo this method currently pub, move this to private after all stmts are added
     pub fn expression(&mut self) -> ParseResult<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> ParseResult<Expr> {
+        let expr = self.equality()?;
+
+        if let Some(equal) = self.match_token_type(&[TokenType::Equal]) {
+            let value = self.assignment()?;
+            if let Expr::Variable(var) = expr {
+                Ok(Expr::Assign(Assign::new(var.name, value)))
+            } else {
+                Err(ParseError::invalid_assignment(equal.line()).without_panic())
+            }
+        } else {
+            Ok(expr)
+        }
     }
 
     fn equality(&mut self) -> ParseResult<Expr> {
@@ -440,6 +457,27 @@ mod test {
         }
 
         #[test]
+        fn assignment() {
+            let sources = [
+                "x = 1;",
+                "x = \"string\";",
+                "x = true;",
+                "x = nil;",
+                "x = y;",
+                "x = y",
+            ];
+            let expected_results = [
+                Ok("Expr::Assign(x = 1)"),
+                Ok("Expr::Assign(x = \"string\")"),
+                Ok("Expr::Assign(x = true)"),
+                Ok("Expr::Assign(x = nil)"),
+                Ok("Expr::Assign(x = Expr::Variable(y))"),
+                Ok("Expr::Assign(x = Expr::Variable(y))"),
+            ];
+            test_parser(&sources, &expected_results);
+        }
+
+        #[test]
         fn synchronize_with_semicolon() {
             // synchronize until semicolon, the next token should be `true`.
             let source = "(1 + 2 + 3 nothing; true < false";
@@ -548,6 +586,38 @@ mod test {
                 &TokenType::Print,
                 &TokenType::Semicolon,
             )];
+            test_parser(source, &expected_statements, &expected_errors)
+        }
+
+        #[test]
+        fn assignment_statement() {
+            let source = "
+            var x = 1;
+            x = 2;
+            x = y;
+            \"this is not assignment\" = 2
+            ";
+            let expected_statements = [
+                "Stmt::Var(x = 1)",
+                "Stmt::Expr(Expr::Assign(x = 2))",
+                "Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))",
+            ];
+            let expected_errors = [ParseError::invalid_assignment(5).without_panic()];
+            test_parser(source, &expected_statements, &expected_errors)
+        }
+
+        #[test]
+        fn assignment_statement_dont_run_to_panic_mode() {
+            let source = "
+            2 = 1 // this has error
+            \"this token should not be eaten\";
+            true;
+            ";
+            let expected_statements = [
+                "Stmt::Expr(\"this token should not be eaten\")",
+                "Stmt::Expr(true)",
+            ];
+            let expected_errors = [ParseError::invalid_assignment(2).without_panic()];
             test_parser(source, &expected_statements, &expected_errors)
         }
     }

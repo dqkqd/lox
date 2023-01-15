@@ -15,4 +15,13 @@ impl Environment {
     pub fn get(&mut self, token: &Token) -> Option<&Object> {
         self.values.get(token.lexeme())
     }
+
+    pub fn assign(&mut self, token: &Token, value: Object) -> Option<&Object> {
+        if let Some(object) = self.values.get_mut(token.lexeme()) {
+            *object = value;
+            Some(object)
+        } else {
+            None
+        }
+    }
 }

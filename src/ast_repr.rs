@@ -40,6 +40,10 @@ impl Visitor<String, String> for AstRepr {
             Expr::Variable(var) => {
                 format!("Expr::Variable({})", var.name.lexeme())
             }
+            Expr::Assign(assign) => {
+                let value = self.visit_expr(&assign.value);
+                format!("Expr::Assign({} = {})", assign.name.lexeme(), value)
+            }
         }
     }
 

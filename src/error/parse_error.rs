@@ -6,6 +6,7 @@ use crate::token::TokenType;
 pub(crate) enum ParseErrorType {
     ExpectedExpression,
     UnexpectedToken(String, String),
+    InvalidAssignment,
 }
 
 impl ParseErrorType {
@@ -15,6 +16,7 @@ impl ParseErrorType {
                 format!("Expected `{}`. Found `{}`", expected, found)
             }
             ParseErrorType::ExpectedExpression => "Expected expression".to_string(),
+            ParseErrorType::InvalidAssignment => "Inavalid assignment target.".to_string(),
         }
     }
 }
@@ -23,6 +25,7 @@ impl ParseErrorType {
 pub(crate) struct ParseError {
     line: usize,
     error_type: ParseErrorType,
+    panic_mode: bool,
 }
 
 impl ParseError {
@@ -30,6 +33,7 @@ impl ParseError {
         Self {
             line,
             error_type: ParseErrorType::ExpectedExpression,
+            panic_mode: true,
         }
     }
 
@@ -37,6 +41,26 @@ impl ParseError {
         Self {
             line,
             error_type: ParseErrorType::UnexpectedToken(found.to_string(), expected.to_string()),
+            panic_mode: true,
+        }
+    }
+
+    pub fn invalid_assignment(line: usize) -> Self {
+        Self {
+            line,
+            error_type: ParseErrorType::InvalidAssignment,
+            panic_mode: true,
+        }
+    }
+
+    pub fn panic(&self) -> bool {
+        self.panic_mode
+    }
+
+    pub fn without_panic(self) -> Self {
+        Self {
+            panic_mode: false,
+            ..self
         }
     }
 }

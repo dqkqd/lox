@@ -7,6 +7,7 @@ pub(crate) enum Expr {
     Literal(Object),
     Grouping(Grouping),
     Variable(Variable),
+    Assign(Assign),
 }
 
 impl Expr {
@@ -68,5 +69,20 @@ pub(crate) struct Variable {
 impl Variable {
     pub fn new(name: Token) -> Self {
         Variable { name }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Assign {
+    pub name: Token,
+    pub value: Box<Expr>,
+}
+
+impl Assign {
+    pub fn new(name: Token, value: Expr) -> Self {
+        Assign {
+            name,
+            value: Box::new(value),
+        }
     }
 }
