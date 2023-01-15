@@ -62,6 +62,20 @@ impl Parser {
         }
     }
 
+    fn match_token_type(&mut self, token_type: &[TokenType]) -> Option<Token> {
+        if let Some(token) = self.next() {
+            let contain = token_type.iter().any(|lexeme| lexeme == token.token_type());
+            if !contain {
+                self.prev(token);
+                None
+            } else {
+                Some(token)
+            }
+        } else {
+            None
+        }
+    }
+
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut statements = Vec::new();
         loop {
@@ -134,20 +148,6 @@ impl Parser {
     // @todo this method currently pub, move this to private after all stmts are added
     pub fn expression(&mut self) -> ParseResult<Expr> {
         self.equality()
-    }
-
-    fn match_token_type(&mut self, token_type: &[TokenType]) -> Option<Token> {
-        if let Some(token) = self.next() {
-            let contain = token_type.iter().any(|lexeme| lexeme == token.token_type());
-            if !contain {
-                self.prev(token);
-                None
-            } else {
-                Some(token)
-            }
-        } else {
-            None
-        }
     }
 
     fn equality(&mut self) -> ParseResult<Expr> {
