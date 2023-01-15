@@ -474,7 +474,7 @@ mod test {
                     &TokenType::RightParen
                 ))
             );
-            assert_eq!(parser.current(), Some(Token::new(TokenType::Return, 1)),);
+            assert_eq!(parser.current(), Some(Token::new(TokenType::Return, 1)));
         }
     }
 
