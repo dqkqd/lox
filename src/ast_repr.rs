@@ -76,6 +76,21 @@ impl Visitor<String, String> for AstRepr {
                 result.push(')');
                 result
             }
+            Stmt::If(if_statement) => {
+                let condition = self.visit_expr(&if_statement.condition);
+                let then_branch = self.visit_stmt(&if_statement.then_branch);
+                let else_branch = if_statement
+                    .else_branch
+                    .as_ref()
+                    .map(|s| self.visit_stmt(s));
+                match else_branch {
+                    Some(else_branch) => format!(
+                        "Stmt::If(cond={} then={} else={})",
+                        condition, then_branch, else_branch
+                    ),
+                    None => format!("Stmt::If(cond={} then={})", condition, then_branch),
+                }
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ use crate::{
     expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Block, Stmt, Var},
+    stmt::{Block, If, Stmt, Var},
     token::{Token, TokenType},
 };
 
@@ -131,6 +131,10 @@ impl Parser {
 
     fn statement(&mut self) -> ParseResult<Stmt> {
         match self.peek_type() {
+            TokenType::If => {
+                self.next();
+                self.if_statement()
+            }
             TokenType::Print => {
                 self.next();
                 self.print_statement()
@@ -165,6 +169,24 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Expression(expr))
+    }
+
+    fn if_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(TokenType::LeftParen)?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen)?;
+
+        let then_branch = self.declaration()?;
+
+        let else_branch = match self.peek_type() {
+            TokenType::Else => {
+                self.next();
+                Some(self.declaration()?)
+            }
+            _ => None,
+        };
+
+        Ok(Stmt::If(If::new(condition, then_branch, else_branch)))
     }
 
     // @todo this method currently pub, move this to private after all stmts are added
@@ -649,6 +671,26 @@ mod test {
                 &TokenType::Eof,
                 &TokenType::RightBrace,
             )];
+            test_parser(source, &expected_statements, &expected_errors)
+        }
+
+        #[test]
+        fn if_statement() {
+            let source = "
+            // normal
+            if (true) var x = 1;
+            else var x = 2;
+
+            // nested
+            if (1) 
+                if (2) 3;
+                else 4;
+            ";
+            let expected_statements = [
+                "Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))",
+                "Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))",
+            ];
+            let expected_errors = [];
             test_parser(source, &expected_statements, &expected_errors)
         }
     }

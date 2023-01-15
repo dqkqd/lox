@@ -147,6 +147,14 @@ where
                 }
                 self.environment.move_to_outer();
             }
+            Stmt::If(if_statement) => {
+                let condition = self.visit_expr(&if_statement.condition)?;
+                if condition.is_truthy() {
+                    self.visit_stmt(&if_statement.then_branch)?;
+                } else if let Some(else_branch) = &if_statement.else_branch {
+                    self.visit_stmt(else_branch)?;
+                }
+            }
         }
         Ok(())
     }
@@ -381,6 +389,41 @@ print y;
 2
 1
 2
+";
+            test_parser(source, expected_output)?;
+            Ok(())
+        }
+
+        #[test]
+        fn if_statement() -> Result<(), std::io::Error> {
+            let source = "
+            // if-then-else
+            var x = 1;
+            if (x == 1) print \"if then else\";
+            else print \"world\";
+
+            // if-then
+            x = 2;
+            if (x == 2) print \"if then\";
+
+            // nested-if-then-else
+            if (true)
+                if (false) print \"should not print\";
+                else print \"nested if then else\";
+
+            // missing left paren
+            if true;
+
+            // missing right paren
+            if (true;
+
+            ";
+            let expected_output = "
+[line 17]: ParseError: Expected `(`. Found `true`
+[line 20]: ParseError: Expected `)`. Found `;`
+if then else
+if then
+nested if then else
 ";
             test_parser(source, expected_output)?;
             Ok(())

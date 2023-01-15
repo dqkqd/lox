@@ -6,6 +6,7 @@ pub(crate) enum Stmt {
     Print(Expr),
     Var(Var),
     Block(Block),
+    If(If),
 }
 
 impl Stmt {
@@ -59,5 +60,22 @@ pub(crate) struct Block {
 impl Block {
     pub fn new(statements: Vec<Stmt>) -> Self {
         Self { statements }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct If {
+    pub condition: Expr,
+    pub then_branch: Box<Stmt>,
+    pub else_branch: Option<Box<Stmt>>,
+}
+
+impl If {
+    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> Self {
+        Self {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(Box::new),
+        }
     }
 }
