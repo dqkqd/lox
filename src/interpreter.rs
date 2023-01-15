@@ -11,6 +11,7 @@ where
 {
     writer: W,
     environment: Environment,
+    errors: Vec<RuntimeError>,
 }
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
@@ -23,7 +24,16 @@ where
         Self {
             writer,
             environment: Environment::default(),
+            errors: Default::default(),
         }
+    }
+
+    pub fn had_error(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn errors(&self) -> &[RuntimeError] {
+        &self.errors
     }
 
     fn expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
@@ -34,11 +44,14 @@ where
         s.walk_stmt(self)
     }
 
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> InterpreterResult<()> {
-        for stmt in statements {
-            self.stmt(stmt)?;
-        }
-        Ok(())
+    pub fn interpret(&mut self, statements: &[Stmt]) {
+        self.errors = statements
+            .iter()
+            .filter_map(|s| match self.stmt(s) {
+                Err(error) => Some(error),
+                _ => None,
+            })
+            .collect();
     }
 
     pub fn write(&mut self, s: &str) -> Result<(), std::io::Error> {
@@ -51,6 +64,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
         Self {
             writer: std::io::stdout().lock(),
             environment: Environment::default(),
+            errors: Default::default(),
         }
     }
 }
@@ -162,255 +176,310 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{error::object_error::ObjectError, parser::Parser, scanner::Scanner};
+
+    use std::io::Write;
+
+    use crate::{parser::Parser, scanner::Scanner};
 
     use super::*;
 
-    mod test_expr {
-        use super::*;
-        fn interpret(source: &str) -> InterpreterResult<Object> {
-            let mut scanner = Scanner::new(source);
-            scanner.scan_tokens();
-            assert!(!scanner.had_error());
-            let mut parser = Parser::from(&scanner);
-            let expr = parser.expression().unwrap();
-            let mut interpreter = Interpreter::default();
-            interpreter.expr(&expr)
+    fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+        let mut result = Vec::new();
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        for error in scanner.errors() {
+            writeln!(&mut result, "{:?}", error)?;
         }
 
-        fn test_interpreter(sources: &[&str], expected_results: &[InterpreterResult<Object>]) {
-            for (&src, expected) in std::iter::zip(sources, expected_results) {
-                let result = interpret(src);
-                assert_eq!(&result, expected);
-            }
+        let mut parser = Parser::from(&scanner);
+        let statements = parser.parse();
+        for error in parser.errors() {
+            writeln!(&mut result, "{:?}", error)?;
         }
 
-        #[test]
-        fn expr_only_number_could_be_unary() {
-            let sources = ["-1", "-nil", "-true", "-false", "-\"a\""];
-            let expected_results = [
-                Ok(Object::Number(-1.0)),
-                Err(RuntimeError::from((1, ObjectError::negative()))),
-                Err(RuntimeError::from((1, ObjectError::negative()))),
-                Err(RuntimeError::from((1, ObjectError::negative()))),
-                Err(RuntimeError::from((1, ObjectError::negative()))),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
+        let mut interpreter = Interpreter::new(&mut result);
+        interpreter.interpret(&statements);
+        let error_string = interpreter
+            .errors()
+            .iter()
+            .map(|err| err.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+        interpreter.write(&error_string)?;
 
-        #[test]
-        fn expr_nil_and_false_are_false() {
-            let sources = ["!1", "!nil", "!true", "!false", "!\"a\""];
-            let expected_results = [
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
+        let result = String::from_utf8(result).unwrap();
+        assert_eq!(result.trim(), expected_output.trim());
 
-        #[test]
-        fn expr_binary_subtract() {
-            let sources = ["2-3", "\"a\" - true"];
-            let expected_results = [
-                Ok(Object::Number(-1.0)),
-                Err(RuntimeError::from((1, ObjectError::subtract()))),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
-
-        #[test]
-        fn expr_binary_multiplication() {
-            let sources = ["2 * 3", "nil * nil"];
-            let expected_results = [
-                Ok(Object::Number(6.0)),
-                Err(RuntimeError::from((1, ObjectError::multiplication()))),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
-
-        #[test]
-        fn expr_binary_division() {
-            let sources = ["3 / 2", "nil / nil"];
-            let expected_results = [
-                Ok(Object::Number(1.5)),
-                Err(RuntimeError::from((1, ObjectError::division()))),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
-
-        #[test]
-        fn expr_binary_add() {
-            let sources = ["3 + 2", "\"Hello\" + \" World\"", "true + 1", "nil + 2"];
-            let expected_results = [
-                Ok(Object::Number(5.0)),
-                Ok(Object::String("Hello World".to_string())),
-                Err(RuntimeError::from((1, ObjectError::addition()))),
-                Err(RuntimeError::from((1, ObjectError::addition()))),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
-
-        #[test]
-        fn expr_binary_comparision() {
-            let sources = [
-                "1 > 2",
-                "1 >= 2",
-                "1 < 2",
-                "1 <= 2",
-                "true > false",
-                "\"a\" >= \"b\"",
-                "nil < nil",
-                "nil <= true",
-                "true == true",
-                "true == false",
-                "true != true",
-                "true != false",
-                "nil == nil",
-                "nil == 1",
-                "nil != nil",
-                "nil != 1",
-                "1 == 2",
-                "1 == 1",
-                "1 != 2",
-                "1 != 1",
-                "\"hello\" == \"hello\"",
-                "\"hello\" == \"world\"",
-                "\"hello\" != \"hello\"",
-                "\"hello\" != \"world\"",
-            ];
-            let expected_results = [
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(true)),
-                Err(RuntimeError::from((1, ObjectError::comparision()))),
-                Err(RuntimeError::from((1, ObjectError::comparision()))),
-                Err(RuntimeError::from((1, ObjectError::comparision()))),
-                Err(RuntimeError::from((1, ObjectError::comparision()))),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(false)),
-                Ok(Object::Bool(true)),
-            ];
-            test_interpreter(&sources, &expected_results);
-        }
+        Ok(())
     }
 
-    mod test_stmt {
+    #[test]
+    fn only_number_could_be_negation() -> Result<(), std::io::Error> {
+        let source = "
+-1; 
+-nil; 
+-true; 
+-false; 
+-\"a\";
+";
+        let expected_output = "
+[line 3]: RuntimeError: Could not negative non-number
+[line 4]: RuntimeError: Could not negative non-number
+[line 5]: RuntimeError: Could not negative non-number
+[line 6]: RuntimeError: Could not negative non-number
+            ";
+        test_parser(source, expected_output)
+    }
 
-        use std::io::Write;
+    #[test]
+    fn nil_and_false_are_false() -> Result<(), std::io::Error> {
+        let source = "
+print !1; 
+print !nil;
+print !true;
+print !false;
+print !\"a\";
+";
+        let expected_output = "
+false
+true
+false
+true
+false
+";
+        test_parser(source, expected_output)
+    }
 
-        use super::*;
+    #[test]
+    fn only_number_can_subtract() -> Result<(), std::io::Error> {
+        let source = "
+print 1 - 3;
+\"a\" - true;
+true - nil;
+";
+        let expected_output = "
+-2
+[line 3]: RuntimeError: Could not subtract non-number
+[line 4]: RuntimeError: Could not subtract non-number
+";
+        test_parser(source, expected_output)
+    }
 
-        fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
-            let mut result = Vec::new();
-            let mut scanner = Scanner::new(source);
-            scanner.scan_tokens();
-            for error in scanner.errors() {
-                writeln!(&mut result, "{:?}", error)?;
-            }
+    #[test]
+    fn only_number_can_multiply() -> Result<(), std::io::Error> {
+        let source = "
+print 5 * 3;
+\"a\" * true;
+true * nil;
+";
+        let expected_output = "
+15
+[line 3]: RuntimeError: Could not multiply non-number
+[line 4]: RuntimeError: Could not multiply non-number
+";
+        test_parser(source, expected_output)
+    }
 
-            let mut parser = Parser::from(&scanner);
-            let statements = parser.parse();
-            for error in parser.errors() {
-                writeln!(&mut result, "{:?}", error)?;
-            }
+    #[test]
+    fn only_number_can_divide() -> Result<(), std::io::Error> {
+        let source = "
+print 6 / 3;
+\"a\" / true;
+true / nil;
+";
+        let expected_output = "
+2
+[line 3]: RuntimeError: Could not divide non-number
+[line 4]: RuntimeError: Could not divide non-number
+";
+        test_parser(source, expected_output)
+    }
 
-            let mut interpreter = Interpreter::new(&mut result);
-            if let Err(error) = interpreter.interpret(&statements) {
-                interpreter.write(&error.to_string())?;
-            }
+    #[test]
+    fn divide_by_zero() -> Result<(), std::io::Error> {
+        todo!()
+    }
 
-            let result = String::from_utf8(result).unwrap();
-            assert_eq!(result.trim(), expected_output.trim());
+    #[test]
+    fn only_number_or_string_could_add_together() -> Result<(), std::io::Error> {
+        let source = "
+print 6 + 2;
+print \"Hello\" + \" World\";
+true + 1;
+nil + false;
+";
+        let expected_output = "
+8
+Hello World
+[line 4]: RuntimeError: Could not add non-number or non-string together
+[line 5]: RuntimeError: Could not add non-number or non-string together";
+        test_parser(source, expected_output)
+    }
 
-            Ok(())
-        }
+    #[test]
+    fn only_number_can_be_compare_using_ge_gt_le_lt() -> Result<(), std::io::Error> {
+        let source = "
+print 1 > 2;
+print 1 >= 2;
+print 2 < 3;
+print 2 <= 2;
+true > false;
+\"a\" > \"b\";
+\"a\" > false;
+nil > nil;
+";
+        let expected_output = "
+false
+false
+true
+true
+[line 6]: RuntimeError: Could not compare non-number together
+[line 7]: RuntimeError: Could not compare non-number together
+[line 8]: RuntimeError: Could not compare non-number together
+[line 9]: RuntimeError: Could not compare non-number together
+";
+        test_parser(source, expected_output)
+    }
 
-        #[test]
-        fn variable_declaration() -> Result<(), std::io::Error> {
-            let source = "
+    #[test]
+    fn same_kind_object_can_be_true_or_false() -> Result<(), std::io::Error> {
+        let source = "
+print 1 == 1;
+print 1 != 2;
+print \"Hello\" == \"Hello\";
+print \"Hello\" != \"World\";
+print nil == nil;
+print true == false;
+";
+        let expected_output = "
+true
+true
+true
+true
+true
+false
+            ";
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn compare_different_kind_object_always_false() -> Result<(), std::io::Error> {
+        let source = "
+print nil != true;
+print 1 == true;
+";
+        let expected_output = "
+true
+false
+            ";
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn variable_declaration() -> Result<(), std::io::Error> {
+        let source = "
 var x = 1;
 print x;
 var y
 ";
-            let expected_output = "
+        let expected_output = "
 [line 5]: ParseError: Expected `;`. Found `EOF`
 1";
-            test_parser(source, expected_output)?;
-            Ok(())
-        }
+        test_parser(source, expected_output)?;
+        Ok(())
+    }
 
-        #[test]
-        fn assignment() -> Result<(), std::io::Error> {
-            let source = "
+    #[test]
+    fn assignment() -> Result<(), std::io::Error> {
+        let source = "
 var x = 1;
 x = 2;
 print x;
 x = y;
 ";
-            let expected_output = "
+        let expected_output = "
 2
 [line 5]: RuntimeError: Undefined variable `y`";
-            test_parser(source, expected_output)?;
-            Ok(())
-        }
+        test_parser(source, expected_output)?;
+        Ok(())
+    }
 
-        #[test]
-        fn block() -> Result<(), std::io::Error> {
-            let source = "
-var x = 1;
-var y = 2;
+    #[test]
+    fn nested_block() -> Result<(), std::io::Error> {
+        let source = "
+var a = \"global a\";
+var b = \"global b\";
+var c = \"global c\";
 {
-var x = 3;
-print x;
-print y;
+    var a = \"outer a\";
+    var b = \"outer b\";
+    {
+        var a = \"inner a\";
+        print a;
+        print b;
+        print c;
+    }
+    print a;
+    print b;
+    print c;
 }
-print x;
-print y;
+print a;
+print b;
+print c;
+            ";
+        let expected_output = "
+inner a
+outer b
+global c
+outer a
+outer b
+global c
+global a
+global b
+global c
 ";
-            let expected_output = "
-3
-2
-1
-2
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn if_then_statement() -> Result<(), std::io::Error> {
+        let source = "
+if (true) 
+    print \"if then\";
 ";
-            test_parser(source, expected_output)?;
-            Ok(())
-        }
+        let expected_output = "if then";
+        test_parser(source, expected_output)
+    }
 
-        #[test]
-        fn if_statement() -> Result<(), std::io::Error> {
-            let source = "
-            // if-then-else
-            var x = 1;
-            if (x == 1) print \"if then else\";
-            else print \"world\";
+    #[test]
+    fn if_then_else_statement() -> Result<(), std::io::Error> {
+        let source = "
+if (false) 
+    print \"if then\";
+else
+    print \"if then else\";
+";
+        let expected_output = "if then else";
+        test_parser(source, expected_output)
+    }
 
-            // if-then
-            x = 2;
-            if (x == 2) print \"if then\";
+    #[test]
+    fn nested_if_then_else() -> Result<(), std::io::Error> {
+        let source = "
+if (false)
+    print \"if then\";
+    if (true)
+        print \"nested if then\";
+    else
+        print \"nested if then else\";
+";
+        let expected_output = "nested if then";
+        test_parser(source, expected_output)
+    }
 
-            // nested-if-then-else
-            if (true)
-                if (false) print \"should not print\";
-                else print \"nested if then else\";
-
+    #[test]
+    fn if_missing_left_right_paren() -> Result<(), std::io::Error> {
+        let source = "
             // missing left paren
             if true;
 
@@ -418,15 +487,10 @@ print y;
             if (true;
 
             ";
-            let expected_output = "
-[line 17]: ParseError: Expected `(`. Found `true`
-[line 20]: ParseError: Expected `)`. Found `;`
-if then else
-if then
-nested if then else
+        let expected_output = "
+[line 3]: ParseError: Expected `(`. Found `true`
+[line 6]: ParseError: Expected `)`. Found `;`
 ";
-            test_parser(source, expected_output)?;
-            Ok(())
-        }
+        test_parser(source, expected_output)
     }
 }

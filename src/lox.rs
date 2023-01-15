@@ -85,10 +85,17 @@ where
             return Ok(());
         }
 
-        let result = self.interpreter.interpret(&statements);
-        if result.is_err() {
-            self.had_runtime_error = true;
-            self.interpreter.write(&result.unwrap_err().to_string())?;
+        self.interpreter.interpret(&statements);
+        if self.interpreter.had_error() {
+            let error_string = self
+                .interpreter
+                .errors()
+                .iter()
+                .map(|err| err.to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+            self.interpreter.write(&error_string)?;
+            return Ok(());
         }
 
         Ok(())
