@@ -273,165 +273,184 @@ mod test {
 
     use super::*;
 
-    fn check(source: &str, expected_tokens: &[Token], expected_error: &[SyntaxError]) {
+    use std::io::Write;
+
+    fn test_scanner(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+        let mut result = Vec::new();
         let mut scanner = Scanner::new(source);
+
         scanner.scan_tokens();
-        assert_eq!(scanner.tokens, expected_tokens);
-        assert_eq!(scanner.errors, expected_error);
+
+        for token in scanner.tokens() {
+            writeln!(
+                &mut result,
+                "line: {}, token: {}",
+                token.line(),
+                token.lexeme()
+            )?;
+        }
+
+        for error in scanner.errors() {
+            writeln!(&mut result, "{:?}", error)?;
+        }
+
+        let result = String::from_utf8(result).unwrap();
+        assert_eq!(result.trim(), expected_output.trim());
+        Ok(())
     }
 
     #[test]
-    fn scan_single_lexeme() {
+    fn scan_single_lexeme() -> Result<(), std::io::Error> {
         let source = "()
         {},.-+
         ;*";
-        let tokens = [
-            Token::new(TokenType::LeftParen, 1),
-            Token::new(TokenType::RightParen, 1),
-            Token::new(TokenType::LeftBrace, 2),
-            Token::new(TokenType::RightBrace, 2),
-            Token::new(TokenType::Comma, 2),
-            Token::new(TokenType::Dot, 2),
-            Token::new(TokenType::Minus, 2),
-            Token::new(TokenType::Plus, 2),
-            Token::new(TokenType::Semicolon, 3),
-            Token::new(TokenType::Star, 3),
-            Token::new(TokenType::Eof, 3),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: (
+line: 1, token: )
+line: 2, token: {
+line: 2, token: }
+line: 2, token: ,
+line: 2, token: .
+line: 2, token: -
+line: 2, token: +
+line: 3, token: ;
+line: 3, token: *
+line: 3, token: EOF";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_operators() {
+    fn scan_operators() -> Result<(), std::io::Error> {
         let source = "!= !
          == = 
          <= < 
          >= >";
-        let tokens = [
-            Token::new(TokenType::BangEqual, 1),
-            Token::new(TokenType::Bang, 1),
-            Token::new(TokenType::EqualEqual, 2),
-            Token::new(TokenType::Equal, 2),
-            Token::new(TokenType::LessEqual, 3),
-            Token::new(TokenType::Less, 3),
-            Token::new(TokenType::GreaterEqual, 4),
-            Token::new(TokenType::Greater, 4),
-            Token::new(TokenType::Eof, 4),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: !=
+line: 1, token: !
+line: 2, token: ==
+line: 2, token: =
+line: 3, token: <=
+line: 3, token: <
+line: 4, token: >=
+line: 4, token: >
+line: 4, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_comments() {
+    fn scan_comments() -> Result<(), std::io::Error> {
         let source = "// first comment
         // second comment
         // third comment";
-        let tokens = [Token::new(TokenType::Eof, 3)];
-        check(source, &tokens, &[]);
+        let expected_output = "line: 3, token: EOF";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_string() {
+    fn scan_string() -> Result<(), std::io::Error> {
         let source = "\"first string\"
         \"second string\"
         ";
-        let tokens = [
-            Token::new(TokenType::String("first string".to_string()), 1),
-            Token::new(TokenType::String("second string".to_string()), 2),
-            Token::new(TokenType::Eof, 3),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: first string
+line: 2, token: second string
+line: 3, token: EOF";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_string_with_error() {
+    fn scan_string_with_error() -> Result<(), std::io::Error> {
         let source = "\"unterminated string";
-        let tokens = [Token::new(TokenType::Eof, 1)];
-        let errors = [SyntaxError::unterminated_string(1)];
-        check(source, &tokens, &errors);
+        let expected_output = "
+line: 1, token: EOF
+[line 1]: SyntaxError: Unterminated string
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_decimal_number() {
+    fn scan_decimal_number() -> Result<(), std::io::Error> {
         let source = "123.456";
-        let tokens = [
-            Token::new(TokenType::Number(123.456), 1),
-            Token::new(TokenType::Eof, 1),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: 123.456
+line: 1, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_integral_number() {
+    fn scan_integral_number() -> Result<(), std::io::Error> {
         let source = "123";
-        let tokens = [
-            Token::new(TokenType::Number(123.0), 1),
-            Token::new(TokenType::Eof, 1),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: 123
+line: 1, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_number_without_dot() {
+    fn scan_number_without_dot() -> Result<(), std::io::Error> {
         let source = "123.";
-        let tokens = [
-            Token::new(TokenType::Number(123.0), 1),
-            Token::new(TokenType::Dot, 1),
-            Token::new(TokenType::Eof, 1),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: 123
+line: 1, token: .
+line: 1, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_identifier() {
+    fn scan_identifier() -> Result<(), std::io::Error> {
         let source = "var language = \"lox\"";
-        let tokens = [
-            Token::new(TokenType::Var, 1),
-            Token::new(TokenType::Identifier("language".to_string()), 1),
-            Token::new(TokenType::Equal, 1),
-            Token::new(TokenType::String("lox".to_string()), 1),
-            Token::new(TokenType::Eof, 1),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: var
+line: 1, token: language
+line: 1, token: =
+line: 1, token: lox
+line: 1, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_reserved_keywords() {
+    fn scan_reserved_keywords() -> Result<(), std::io::Error> {
         let source = "and class else
         false for fun
         if nil or print
         return super this 
         true var while";
-        let tokens = [
-            Token::new(TokenType::And, 1),
-            Token::new(TokenType::Class, 1),
-            Token::new(TokenType::Else, 1),
-            Token::new(TokenType::False, 2),
-            Token::new(TokenType::For, 2),
-            Token::new(TokenType::Fun, 2),
-            Token::new(TokenType::If, 3),
-            Token::new(TokenType::Nil, 3),
-            Token::new(TokenType::Or, 3),
-            Token::new(TokenType::Print, 3),
-            Token::new(TokenType::Return, 4),
-            Token::new(TokenType::Super, 4),
-            Token::new(TokenType::This, 4),
-            Token::new(TokenType::True, 5),
-            Token::new(TokenType::Var, 5),
-            Token::new(TokenType::While, 5),
-            Token::new(TokenType::Eof, 5),
-        ];
-        check(source, &tokens, &[]);
+        let expected_output = "
+line: 1, token: and
+line: 1, token: class
+line: 1, token: else
+line: 2, token: false
+line: 2, token: for
+line: 2, token: fun
+line: 3, token: if
+line: 3, token: nil
+line: 3, token: or
+line: 3, token: print
+line: 4, token: return
+line: 4, token: super
+line: 4, token: this
+line: 5, token: true
+line: 5, token: var
+line: 5, token: while
+line: 5, token: EOF
+        ";
+        test_scanner(source, expected_output)
     }
 
     #[test]
-    fn scan_unexpected_character() {
+    fn scan_unexpected_character() -> Result<(), std::io::Error> {
         let source = "@#";
-        let tokens = [Token::new(TokenType::Eof, 1)];
-        let errors = [
-            SyntaxError::unexpected_character(1, '@'),
-            SyntaxError::unexpected_character(1, '#'),
-        ];
-        check(source, &tokens, &errors);
+        let expected_output = "
+line: 1, token: EOF
+[line 1]: SyntaxError: Unexpected character `@`
+[line 1]: SyntaxError: Unexpected character `#`
+";
+        test_scanner(source, expected_output)
     }
 }
