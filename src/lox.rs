@@ -1,4 +1,4 @@
-use std::process::exit;
+use std::{io::StdoutLock, process::exit};
 
 use anyhow::{Context, Result};
 
@@ -8,7 +8,7 @@ pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
     let source = std::fs::read_to_string(path)
         .with_context(|| format!("Could not read file `{:?}`", path))?;
-    lox.run(&source);
+    lox.run(&source)?;
     if lox.had_scan_error || lox.had_parse_error {
         exit(65);
     } else if lox.had_runtime_error {
@@ -32,7 +32,7 @@ pub fn run_prompt(
     for line in reader.lines() {
         let line = line?;
         if !line.is_empty() {
-            lox.run(&line);
+            lox.run(&line)?;
             lox.reset_error();
         }
         write!(writer, "{} ", PROMPT)?;
@@ -42,22 +42,27 @@ pub fn run_prompt(
     Ok(())
 }
 
-#[derive(Default)]
-pub(crate) struct Lox {
-    interpreter: Interpreter,
+pub(crate) struct Lox<W>
+where
+    W: std::io::Write,
+{
+    interpreter: Interpreter<W>,
     had_scan_error: bool,
     had_parse_error: bool,
     had_runtime_error: bool,
 }
 
-impl Lox {
+impl<W> Lox<W>
+where
+    W: std::io::Write,
+{
     fn reset_error(&mut self) {
         self.had_scan_error = false;
         self.had_parse_error = false;
         self.had_runtime_error = false;
     }
 
-    fn run(&mut self, source: &str) {
+    fn run(&mut self, source: &str) -> Result<(), std::io::Error> {
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
 
@@ -65,9 +70,9 @@ impl Lox {
 
         if self.had_scan_error {
             for error in scanner.errors() {
-                println!("{:?}", error);
+                self.interpreter.write(&error.to_string())?
             }
-            return;
+            return Ok(());
         }
 
         let mut parser = Parser::from(&scanner);
@@ -75,15 +80,28 @@ impl Lox {
         self.had_parse_error = parser.had_error();
         if self.had_parse_error {
             for error in parser.errors() {
-                println!("{:?}", error)
+                self.interpreter.write(&error.to_string())?
             }
-            return;
+            return Ok(());
         }
 
         let result = self.interpreter.interpret(&statements);
         if result.is_err() {
             self.had_runtime_error = true;
-            println!("{:?}", result.unwrap_err());
+            self.interpreter.write(&result.unwrap_err().to_string())?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> Default for Lox<StdoutLock<'a>> {
+    fn default() -> Self {
+        Self {
+            interpreter: Interpreter::default(),
+            had_parse_error: false,
+            had_runtime_error: false,
+            had_scan_error: false,
         }
     }
 }

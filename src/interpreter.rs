@@ -1,16 +1,31 @@
+use std::io::StdoutLock;
+
 use crate::{
     environment::Environment, error::runtime_error::RuntimeError, expr::Expr, object::Object,
     stmt::Stmt, token::TokenType, visitor::Visitor,
 };
 
-#[derive(Default)]
-pub(crate) struct Interpreter {
+pub(crate) struct Interpreter<W>
+where
+    W: std::io::Write,
+{
+    writer: W,
     environment: Environment,
 }
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
 
-impl Interpreter {
+impl<W> Interpreter<W>
+where
+    W: std::io::Write,
+{
+    pub fn new(writer: W) -> Self {
+        Self {
+            writer,
+            environment: Environment::default(),
+        }
+    }
+
     fn expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
         e.walk_epxr(self)
     }
@@ -25,9 +40,25 @@ impl Interpreter {
         }
         Ok(())
     }
+
+    pub fn write(&mut self, s: &str) -> Result<(), std::io::Error> {
+        writeln!(self.writer, "{}", s)
+    }
 }
 
-impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
+impl<'a> Default for Interpreter<StdoutLock<'a>> {
+    fn default() -> Self {
+        Self {
+            writer: std::io::stdout().lock(),
+            environment: Environment::default(),
+        }
+    }
+}
+
+impl<W> Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter<W>
+where
+    W: std::io::Write,
+{
     fn visit_expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
         match e {
             Expr::Binary(binary) => {
@@ -102,8 +133,7 @@ impl Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter {
             }
             Stmt::Print(e) => {
                 let value = self.visit_expr(e)?;
-                // @todo, print to specific output stream
-                println!("{}", value.to_string());
+                self.write(&value.to_string())?;
             }
             Stmt::Var(var) => {
                 let value = self.visit_expr(&var.expression)?;

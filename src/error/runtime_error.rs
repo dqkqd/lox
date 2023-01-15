@@ -8,6 +8,7 @@ use super::object_error::ObjectError;
 pub(crate) enum RuntimeErrorType {
     ObjectError(ObjectError),
     UndefinedVariable(String),
+    WriteError(String),
 }
 
 impl RuntimeErrorType {
@@ -15,6 +16,7 @@ impl RuntimeErrorType {
         match self {
             RuntimeErrorType::ObjectError(e) => e.to_string(),
             RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{}`", name),
+            RuntimeErrorType::WriteError(err) => err.to_string(),
         }
     }
 }
@@ -39,6 +41,15 @@ impl From<(usize, ObjectError)> for RuntimeError {
         Self {
             line: value.0,
             error_type: RuntimeErrorType::ObjectError(value.1),
+        }
+    }
+}
+
+impl From<std::io::Error> for RuntimeError {
+    fn from(value: std::io::Error) -> Self {
+        Self {
+            line: 0,
+            error_type: RuntimeErrorType::WriteError(value.to_string()),
         }
     }
 }
