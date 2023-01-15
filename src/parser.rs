@@ -130,18 +130,16 @@ impl Parser {
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {
-        if self
-            .match_peek_type_then_advance(&[TokenType::Print])
-            .is_some()
-        {
-            self.print_statement()
-        } else if self
-            .match_peek_type_then_advance(&[TokenType::LeftBrace])
-            .is_some()
-        {
-            self.block()
-        } else {
-            self.expression_statement()
+        match self.peek_type() {
+            TokenType::Print => {
+                self.next();
+                self.print_statement()
+            }
+            TokenType::LeftBrace => {
+                self.next();
+                self.block()
+            }
+            _ => self.expression_statement(),
         }
     }
 
