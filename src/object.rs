@@ -157,6 +157,10 @@ impl Div for Object {
     fn div(self, rhs: Self) -> Self::Output {
         let lhs = self.as_number().ok_or_else(ObjectError::division)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::division)?;
-        Ok(Object::Number(lhs / rhs))
+        if rhs == 0.0 {
+            Err(ObjectError::zero_division())
+        } else {
+            Ok(Object::Number(lhs / rhs))
+        }
     }
 }

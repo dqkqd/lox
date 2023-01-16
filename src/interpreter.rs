@@ -297,7 +297,13 @@ true / nil;
 
     #[test]
     fn divide_by_zero() -> Result<(), std::io::Error> {
-        todo!()
+        let source = "
+1/0;
+";
+        let expected_output = "
+[line 2]: RuntimeError: Division by zero
+    ";
+        test_parser(source, expected_output)
     }
 
     #[test]

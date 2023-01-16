@@ -8,6 +8,7 @@ pub(crate) enum ObjectErrorType {
     Subtraction,
     Multiplication,
     Division,
+    ZeroDivision,
 }
 
 impl ObjectErrorType {
@@ -21,6 +22,7 @@ impl ObjectErrorType {
             ObjectErrorType::Subtraction => "Could not subtract non-number".to_string(),
             ObjectErrorType::Multiplication => "Could not multiply non-number".to_string(),
             ObjectErrorType::Division => "Could not divide non-number".to_string(),
+            ObjectErrorType::ZeroDivision => "Division by zero".to_string(),
         }
     }
 }
@@ -64,6 +66,12 @@ impl ObjectError {
     pub fn division() -> Self {
         Self {
             error_type: ObjectErrorType::Division,
+        }
+    }
+
+    pub fn zero_division() -> Self {
+        Self {
+            error_type: ObjectErrorType::ZeroDivision,
         }
     }
 }
