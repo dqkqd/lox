@@ -714,10 +714,13 @@ Stmt::Expr(Expr::Logical(Expr::Logical(1 and 2) or 3))
         let source = "
 while (1 + 2)
     print 1;
+
+while (1 + 2
         ";
 
         let expected_output = "
 Stmt::While(cond=Expr::Binary(1 + 2), body=Stmt::Print(1))
+[line 6]: ParseError: Expected `)`. Found `EOF`
 ";
         test_parser(source, expected_output)
     }
