@@ -180,6 +180,13 @@ where
                     self.visit_stmt(else_branch)?;
                 }
             }
+            Stmt::While(while_statement) => loop {
+                let condition = self.visit_expr(&while_statement.condition)?;
+                if !condition.is_truthy() {
+                    break;
+                }
+                self.visit_stmt(&while_statement.body)?;
+            },
         }
         Ok(())
     }
@@ -519,7 +526,7 @@ print false or 1; // 1
 print true and 1;  // 1
 print false and 1; // false
 print 1 and 2 and 3 or 4; // 3
-        ";
+";
 
         let expected_output = "
 true
@@ -527,7 +534,31 @@ true
 1
 false
 3
-        ";
+";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn while_statement() -> Result<(), std::io::Error> {
+        let source = "
+var x = 1;
+var y = 100;
+while (x <= 5) {
+    print y;
+    y = y + 1;
+    x = x + 1;
+}
+";
+
+        let expected_output = "
+100
+101
+102
+103
+104
+";
+
         test_parser(source, expected_output)
     }
 }

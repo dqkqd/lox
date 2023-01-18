@@ -7,6 +7,7 @@ pub(crate) enum Stmt {
     Var(Var),
     Block(Block),
     If(If),
+    While(While),
 }
 
 impl Stmt {
@@ -76,6 +77,21 @@ impl If {
             condition,
             then_branch: Box::new(then_branch),
             else_branch: else_branch.map(Box::new),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct While {
+    pub condition: Expr,
+    pub body: Box<Stmt>,
+}
+
+impl While {
+    pub fn new(condition: Expr, body: Stmt) -> Self {
+        Self {
+            condition,
+            body: Box::new(body),
         }
     }
 }

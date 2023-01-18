@@ -109,6 +109,11 @@ impl Visitor<String, String> for AstRepr {
                     None => format!("Stmt::If(cond={} then={})", condition, then_branch),
                 }
             }
+            Stmt::While(while_statement) => {
+                let condition = self.visit_expr(&while_statement.condition);
+                let body = self.visit_stmt(&while_statement.body);
+                format!("Stmt::While(cond={}, body={})", condition, body)
+            }
         }
     }
 }

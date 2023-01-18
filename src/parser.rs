@@ -5,7 +5,7 @@ use crate::{
     expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Block, If, Stmt, Var},
+    stmt::{Block, If, Stmt, Var, While},
     token::{Token, TokenType},
 };
 
@@ -139,6 +139,10 @@ impl Parser {
                 self.next();
                 self.print_statement()
             }
+            TokenType::While => {
+                self.next();
+                self.while_statement()
+            }
             TokenType::LeftBrace => {
                 self.next();
                 self.block()
@@ -187,6 +191,14 @@ impl Parser {
         };
 
         Ok(Stmt::If(If::new(condition, then_branch, else_branch)))
+    }
+
+    fn while_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(TokenType::LeftParen)?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen)?;
+        let body = self.declaration()?;
+        Ok(Stmt::While(While::new(condition, body)))
     }
 
     // @todo this method currently pub, move this to private after all stmts are added
@@ -638,6 +650,19 @@ Stmt::Expr(Expr::Logical(Expr::Logical(1 or 2) or 3))
 Stmt::Expr(Expr::Logical(Expr::Logical(1 and 2) or 3))
 ";
 
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn while_statement() -> Result<(), std::io::Error> {
+        let source = "
+while (1 + 2)
+    print 1;
+        ";
+
+        let expected_output = "
+Stmt::While(cond=Expr::Binary(1 + 2), body=Stmt::Print(1))
+";
         test_parser(source, expected_output)
     }
 }
