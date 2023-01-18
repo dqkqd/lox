@@ -143,6 +143,10 @@ impl Parser {
                 self.next();
                 self.while_statement()
             }
+            TokenType::For => {
+                self.next();
+                self.for_statement()
+            }
             TokenType::LeftBrace => {
                 self.next();
                 self.block()
@@ -199,6 +203,58 @@ impl Parser {
         self.consume(TokenType::RightParen)?;
         let body = self.declaration()?;
         Ok(Stmt::While(While::new(condition, body)))
+    }
+
+    fn for_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(TokenType::LeftParen)?;
+        let initializer = match self.peek_type() {
+            TokenType::Semicolon => {
+                self.next();
+                None
+            }
+            TokenType::Var => {
+                self.next();
+                Some(self.var_declaration())
+            }
+            _ => Some(self.expression_statement()),
+        };
+
+        let condition = match self.peek_type() {
+            TokenType::Semicolon => None,
+            _ => Some(self.expression()?),
+        };
+        self.consume(TokenType::Semicolon)?;
+
+        let increment = match self.peek_type() {
+            TokenType::RightParen => None,
+            _ => Some(self.expression()),
+        };
+        self.consume(TokenType::RightParen)?;
+
+        let body = self.statement()?;
+
+        // attach increment to tail of the body
+        let body = match increment {
+            None => body,
+            Some(inc) => {
+                let inc = Stmt::Expression(inc?);
+                Stmt::Block(Block::new(vec![body, inc]))
+            }
+        };
+
+        // make condition true when it wasn't specified
+        let condition = condition.unwrap_or(Expr::Literal(Object::Bool(true)));
+
+        // make a while loop
+        let while_statement = Stmt::While(While::new(condition, body));
+
+        // attach initializer at the head of the while statement
+        let for_statement = match initializer {
+            None => while_statement,
+            Some(init) => Stmt::Block(Block::new(vec![init?, while_statement])),
+        };
+
+        Ok(for_statement)
     }
 
     // @todo this method currently pub, move this to private after all stmts are added
@@ -663,6 +719,63 @@ while (1 + 2)
         let expected_output = "
 Stmt::While(cond=Expr::Binary(1 + 2), body=Stmt::Print(1))
 ";
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn normal_for_statement() -> Result<(), std::io::Error> {
+        let source = "
+for (var i = 0; i < 5; i = i + 1)
+    print i;
+for (1;2;3)
+    4;
+        ";
+
+        let expected_output  = "
+Stmt::Block(Stmt::Var(i = 0) Stmt::While(cond=Expr::Binary(Expr::Variable(i) < 5), body=Stmt::Block(Stmt::Print(Expr::Variable(i)) Stmt::Expr(Expr::Assign(i = Expr::Binary(Expr::Variable(i) + 1))))))
+Stmt::Block(Stmt::Expr(1) Stmt::While(cond=2, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3))))
+";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn missing_parts_for_statement() -> Result<(), std::io::Error> {
+        let source = "
+for (; 2; 3) 4; // missing initializer
+for (1; ; 3) 4; // missing condition
+for (1; 2; ) 4; // missing increment
+for (;;) 4;    // miss all      
+        ";
+
+        let expected_output = "
+Stmt::While(cond=2, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3)))
+Stmt::Block(Stmt::Expr(1) Stmt::While(cond=true, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3))))
+Stmt::Block(Stmt::Expr(1) Stmt::While(cond=2, body=Stmt::Expr(4)))
+Stmt::While(cond=true, body=Stmt::Expr(4))
+        ";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn invalid_for_statement() -> Result<(), std::io::Error> {
+        let source = "
+for (;) 4; // missing semicolon
+for () 2; // no semicolon
+for ( // no right paren
+for (;; // no right paren but already parsed init, cond and inc
+for ) // no left paren
+";
+
+        let expected_output = "
+[line 2]: ParseError: Expected expression
+[line 3]: ParseError: Expected expression
+[line 5]: ParseError: Expected expression
+[line 6]: ParseError: Expected `)`. Found `for`
+[line 6]: ParseError: Expected `(`. Found `)`
+";
+
         test_parser(source, expected_output)
     }
 }
