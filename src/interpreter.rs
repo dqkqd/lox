@@ -137,6 +137,17 @@ where
                     .cloned()
                     .ok_or_else(|| RuntimeError::undefined_variable(name))
             }
+            Expr::Logical(logical) => {
+                let left = self.visit_expr(&logical.left)?;
+                if logical.operator.token_type() == &TokenType::Or {
+                    if left.is_truthy() {
+                        return Ok(left);
+                    }
+                } else if !left.is_truthy() {
+                    return Ok(left);
+                }
+                self.visit_expr(&logical.right)
+            }
         }
     }
 
@@ -497,6 +508,26 @@ if (false)
 [line 3]: ParseError: Expected `(`. Found `true`
 [line 6]: ParseError: Expected `)`. Found `;`
 ";
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn logical() -> Result<(), std::io::Error> {
+        let source = "
+print true or 1; // true
+print false or 1; // 1
+print true and 1;  // 1
+print false and 1; // false
+print 1 and 2 and 3 or 4; // 3
+        ";
+
+        let expected_output = "
+true
+1
+1
+false
+3
+        ";
         test_parser(source, expected_output)
     }
 }

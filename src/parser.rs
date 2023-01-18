@@ -195,7 +195,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> ParseResult<Expr> {
-        let expr = self.equality()?;
+        let expr = self.logic_or()?;
 
         if let Some(equal) = self.match_peek_type_then_advance(&[TokenType::Equal]) {
             let value = self.assignment()?;
@@ -207,6 +207,24 @@ impl Parser {
         } else {
             Ok(expr)
         }
+    }
+
+    fn logic_or(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.logical_and()?;
+        while let Some(operator) = self.match_peek_type_then_advance(&[TokenType::Or]) {
+            let rhs = self.logical_and()?;
+            expr = Expr::Logical(Binary::new(expr, operator, rhs));
+        }
+        Ok(expr)
+    }
+
+    fn logical_and(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.equality()?;
+        while let Some(operator) = self.match_peek_type_then_advance(&[TokenType::And]) {
+            let rhs = self.equality()?;
+            expr = Expr::Logical(Binary::new(expr, operator, rhs));
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> ParseResult<Expr> {
@@ -603,6 +621,23 @@ Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))
 Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))
 Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))
 ";
+        test_parser_2(source, expected_output)
+    }
+
+    #[test]
+    fn logical_or() -> Result<(), std::io::Error> {
+        let source = "
+            1 or 2;
+            1 or 2 or 3;
+            1 and 2 or 3;
+        ";
+
+        let expected_output = "
+Stmt::Expr(Expr::Logical(1 or 2))
+Stmt::Expr(Expr::Logical(Expr::Logical(1 or 2) or 3))
+Stmt::Expr(Expr::Logical(Expr::Logical(1 and 2) or 3))
+";
+
         test_parser_2(source, expected_output)
     }
 }

@@ -52,6 +52,16 @@ impl Visitor<String, String> for AstRepr {
                 let value = self.visit_expr(&assign.value);
                 format!("Expr::Assign({} = {})", assign.name.lexeme(), value)
             }
+            Expr::Logical(logical) => {
+                let left = self.visit_expr(&logical.left);
+                let right = self.visit_expr(&logical.right);
+                format!(
+                    "Expr::Logical({} {} {})",
+                    left,
+                    logical.operator.lexeme(),
+                    right
+                )
+            }
         }
     }
 

@@ -8,6 +8,7 @@ pub(crate) enum Expr {
     Grouping(Grouping),
     Variable(Variable),
     Assign(Assign),
+    Logical(Binary),
 }
 
 impl Expr {
