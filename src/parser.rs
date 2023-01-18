@@ -356,7 +356,7 @@ mod test {
 
     use super::*;
 
-    fn test_parser_2(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+    fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
         let mut result = Vec::new();
 
         let mut scanner = Scanner::new(source);
@@ -395,14 +395,14 @@ Stmt::Expr(123.456)
 Stmt::Expr(Expr::Group(nil))
 Stmt::Expr(Expr::Variable(variable))
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
     fn goupring_must_be_closed() -> Result<(), std::io::Error> {
         let source = "(1";
         let expected_output = "[line 1]: ParseError: Expected `)`. Found `EOF`";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -432,7 +432,7 @@ Stmt::Expr(Expr::Unary(! Expr::Group(1.2)))
 Stmt::Expr(Expr::Unary(- Expr::Variable(x)))
 Stmt::Expr(Expr::Unary(! Expr::Variable(x)))
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -453,7 +453,7 @@ Stmt::Expr(Expr::Binary(true >= false))
 Stmt::Expr(Expr::Binary(2 < 3))
 Stmt::Expr(Expr::Binary(true <= false))
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -470,7 +470,7 @@ Stmt::Expr(Expr::Assign(x = nil))
 Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
 [line 4]: ParseError: Expected `;`. Found `EOF`";
 
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -484,7 +484,7 @@ true < false;
 Stmt::Expr(Expr::Binary(true < false))
 [line 2]: ParseError: Expected `)`. Found `nothing`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -495,7 +495,7 @@ Stmt::Expr(Expr::Binary(true < false))
 [line 1]: ParseError: Expected `)`. Found `1`
 [line 1]: ParseError: Expected `variable name`. Found `EOF`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -512,7 +512,7 @@ Stmt::Expr(Expr::Group(\"has right paren\"))
 [line 3]: ParseError: Expected `)`. Found `;`
 [line 5]: ParseError: Expected `;`. Found `EOF`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -527,7 +527,7 @@ Stmt::Print(\"statement\")
 Stmt::Print(Expr::Binary(1 + 2))
 [line 4]: ParseError: Expected `;`. Found `print`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -545,7 +545,7 @@ Stmt::Var(x = Expr::Binary(Expr::Variable(y) + 1))
 Stmt::Print(Expr::Variable(x))
 [line 5]: ParseError: Expected `;`. Found `print`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -563,7 +563,7 @@ Stmt::Expr(Expr::Assign(x = 2))
 Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
 [line 5]: ParseError: Inavalid assignment target.
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -579,7 +579,7 @@ Stmt::Expr(\"this token should not be eaten\")
 Stmt::Expr(true)
 [line 2]: ParseError: Inavalid assignment target.
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -601,7 +601,7 @@ Stmt::Expr(true)
 Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))
 [line 12]: ParseError: Expected `}`. Found `EOF`
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -621,7 +621,7 @@ Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))
 Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))
 Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))
 ";
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 
     #[test]
@@ -638,6 +638,6 @@ Stmt::Expr(Expr::Logical(Expr::Logical(1 or 2) or 3))
 Stmt::Expr(Expr::Logical(Expr::Logical(1 and 2) or 3))
 ";
 
-        test_parser_2(source, expected_output)
+        test_parser(source, expected_output)
     }
 }
