@@ -586,6 +586,23 @@ while (x <= 5) {
 104
 ";
 
+    #[test]
+    fn function_call() -> Result<(), std::io::Error> {
+        let source = "
+fun f(x) {
+    var y = 1;
+    print x + y;
+}
+
+f(2);
+f(5);
+";
+
+        let expected_output = "
+3
+6
+";
+
         test_parser(source, expected_output)
     }
 }
