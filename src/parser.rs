@@ -421,10 +421,9 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token_type: TokenType) -> ParseResult<()> {
+    fn consume(&mut self, token_type: TokenType) -> ParseResult<Token> {
         if self.peek_type() == &token_type {
-            self.next(); // consume
-            Ok(())
+            Ok(self.next().unwrap())
         } else {
             Err(ParseError::unexpected_token(
                 self.peek().line(),

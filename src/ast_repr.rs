@@ -62,6 +62,16 @@ impl Visitor<String, String> for AstRepr {
                     right
                 )
             }
+            Expr::Call(call) => {
+                let callee = self.visit_expr(&call.callee);
+                let arguments = call
+                    .arguments
+                    .iter()
+                    .map(|arg| self.visit_expr(arg))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!("Expr::Call(callee={} arguments={})", callee, arguments)
+            }
         }
     }
 

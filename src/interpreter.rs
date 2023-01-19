@@ -148,6 +148,9 @@ where
                 }
                 self.visit_expr(&logical.right)
             }
+            Expr::Call(call) => {
+                unimplemented!()
+            }
         }
     }
 

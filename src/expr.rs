@@ -9,6 +9,7 @@ pub(crate) enum Expr {
     Variable(Variable),
     Assign(Assign),
     Logical(Binary),
+    Call(Call),
 }
 
 impl Expr {
@@ -84,6 +85,23 @@ impl Assign {
         Assign {
             name,
             value: Box::new(value),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Call {
+    pub callee: Box<Expr>,
+    pub paren: Token,
+    pub arguments: Vec<Expr>,
+}
+
+impl Call {
+    pub fn new(callee: Expr, paren: Token, arguments: Vec<Expr>) -> Self {
+        Self {
+            callee: Box::new(callee),
+            paren,
+            arguments,
         }
     }
 }
