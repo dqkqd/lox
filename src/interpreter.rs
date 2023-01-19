@@ -187,6 +187,10 @@ where
                 }
                 self.visit_stmt(&while_statement.body)?;
             },
+
+            Stmt::Function(fun) => {
+                unimplemented!()
+            }
         }
         Ok(())
     }

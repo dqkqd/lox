@@ -7,6 +7,7 @@ pub(crate) enum ParseErrorType {
     ExpectedExpression,
     UnexpectedToken(String, String),
     InvalidAssignment,
+    MaximumArguments(usize),
 }
 
 impl ParseErrorType {
@@ -17,6 +18,9 @@ impl ParseErrorType {
             }
             ParseErrorType::ExpectedExpression => "Expected expression".to_string(),
             ParseErrorType::InvalidAssignment => "Inavalid assignment target.".to_string(),
+            ParseErrorType::MaximumArguments(argc) => {
+                format!("Could not have more than {} arguments", argc)
+            }
         }
     }
 }
@@ -49,6 +53,14 @@ impl ParseError {
         Self {
             line,
             error_type: ParseErrorType::InvalidAssignment,
+            panic_mode: true,
+        }
+    }
+
+    pub fn maximum_arguments(line: usize, size: usize) -> Self {
+        Self {
+            line,
+            error_type: ParseErrorType::MaximumArguments(size),
             panic_mode: true,
         }
     }

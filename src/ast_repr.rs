@@ -114,6 +114,20 @@ impl Visitor<String, String> for AstRepr {
                 let body = self.visit_stmt(&while_statement.body);
                 format!("Stmt::While(cond={}, body={})", condition, body)
             }
+            Stmt::Function(fun) => {
+                let name = fun.name.lexeme();
+                let params = fun
+                    .params
+                    .iter()
+                    .map(|token| token.lexeme())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let body = self.visit_stmt(&fun.body);
+                format!(
+                    "Stmt::Function(name={} params={} body={})",
+                    name, params, body
+                )
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::{expr::Expr, token::Token, visitor::Visitor};
 pub(crate) enum Stmt {
     Expression(Expr),
     Print(Expr),
+    Function(Function),
     Var(Var),
     Block(Block),
     If(If),
@@ -91,6 +92,23 @@ impl While {
     pub fn new(condition: Expr, body: Stmt) -> Self {
         Self {
             condition,
+            body: Box::new(body),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Function {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Box<Stmt>,
+}
+
+impl Function {
+    pub fn new(name: Token, params: Vec<Token>, body: Stmt) -> Self {
+        Self {
+            name,
+            params,
             body: Box::new(body),
         }
     }

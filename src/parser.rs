@@ -1,11 +1,13 @@
 use std::{iter::Peekable, vec::IntoIter};
 
+const MAXIMUM_ARGUMENTS: usize = 255;
+
 use crate::{
     error::parse_error::ParseError,
     expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Block, If, Stmt, Var, While},
+    stmt::{Block, Function, If, Stmt, Var, While},
     token::{Token, TokenType},
 };
 
@@ -95,6 +97,11 @@ impl Parser {
 
     fn declaration(&mut self) -> ParseResult<Stmt> {
         if self
+            .match_peek_type_then_advance(&[TokenType::Fun])
+            .is_some()
+        {
+            self.fun_declaration()
+        } else if self
             .match_peek_type_then_advance(&[TokenType::Var])
             .is_some()
         {
@@ -102,6 +109,31 @@ impl Parser {
         } else {
             self.statement()
         }
+    }
+
+    fn fun_declaration(&mut self) -> ParseResult<Stmt> {
+        let name = self.consume_identifier("function name")?;
+        self.consume(TokenType::LeftParen)?;
+        let mut params = Vec::new();
+        if self.peek_type() != &TokenType::RightParen {
+            loop {
+                let param = self.consume_identifier("parameter name")?;
+                params.push(param);
+                if params.len() >= MAXIMUM_ARGUMENTS {
+                    return Err(ParseError::maximum_arguments(
+                        self.peek().line(),
+                        MAXIMUM_ARGUMENTS,
+                    ));
+                }
+                if self.consume(TokenType::Comma).is_err() {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen)?;
+        self.consume(TokenType::LeftBrace)?;
+        let body = self.block()?;
+        Ok(Stmt::Function(Function::new(name, params, body)))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
@@ -374,6 +406,19 @@ impl Parser {
         };
         self.next();
         Ok(expr)
+    }
+
+    fn consume_identifier(&mut self, ident_info: &str) -> ParseResult<Token> {
+        if let TokenType::Identifier(_) = self.peek_type() {
+            let ident = self.next().unwrap();
+            Ok(ident)
+        } else {
+            Err(ParseError::unexpected_token(
+                self.peek().line(),
+                self.peek_type(),
+                &TokenType::Identifier(ident_info.to_string()),
+            ))
+        }
     }
 
     fn consume(&mut self, token_type: TokenType) -> ParseResult<()> {
@@ -780,5 +825,59 @@ for ) // no left paren
 ";
 
         test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn normal_function_declaration() -> Result<(), std::io::Error> {
+        let source = "
+fun hello(x, y, z) {
+print x;
+print y;
+print z;
+}
+";
+
+        let expected_output = "
+Stmt::Function(name=hello params=x,y,z body=Stmt::Block(Stmt::Print(Expr::Variable(x)) Stmt::Print(Expr::Variable(y)) Stmt::Print(Expr::Variable(z))))
+";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn missing_parts_function_declaration() -> Result<(), std::io::Error> {
+        let source = "
+fun (; // missing function name
+fun f); // missing left paren
+fun f(x, y; // missing right paren
+fun f(,); // missing parameter name
+fun f(); // missing body
+fun f()}; // missing left brace
+fun f(){ print x; // missing right brace
+";
+
+        let expected_output = "
+[line 2]: ParseError: Expected `function name`. Found `(`
+[line 3]: ParseError: Expected `(`. Found `)`
+[line 4]: ParseError: Expected `)`. Found `;`
+[line 5]: ParseError: Expected `parameter name`. Found `,`
+[line 6]: ParseError: Expected `{`. Found `;`
+[line 7]: ParseError: Expected `{`. Found `}`
+[line 9]: ParseError: Expected `}`. Found `EOF`
+";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_with_maximum_arguments() -> Result<(), std::io::Error> {
+        let mut params = Vec::new();
+        while params.len() < MAXIMUM_ARGUMENTS {
+            params.push("x")
+        }
+        let params = params.join(",");
+        let source = format!("fun hello({}) {{}}", params);
+        let expected_output = "[line 1]: ParseError: Could not have more than 255 arguments";
+        test_parser(&source, expected_output)
     }
 }
