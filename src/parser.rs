@@ -4,7 +4,7 @@ const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
     error::parse_error::ParseError,
-    expr::{Assign, Binary, Expr, Grouping, Unary, Variable},
+    expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
     stmt::{Block, Function, If, Stmt, Var, While},
@@ -381,8 +381,41 @@ impl Parser {
             let right = self.unary()?;
             Ok(Expr::Unary(Unary::new(operator, right)))
         } else {
-            Ok(self.primary()?)
+            Ok(self.call()?)
         }
+    }
+
+    fn call(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.primary()?;
+        loop {
+            if self.consume(TokenType::LeftParen).is_ok() {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> ParseResult<Expr> {
+        let mut arguments = Vec::new();
+        if self.peek_type() != &TokenType::RightParen {
+            loop {
+                let arg = self.expression()?;
+                arguments.push(arg);
+                if arguments.len() >= MAXIMUM_ARGUMENTS {
+                    return Err(ParseError::maximum_arguments(
+                        self.peek().line(),
+                        MAXIMUM_ARGUMENTS,
+                    ));
+                }
+                if self.consume(TokenType::Comma).is_err() {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen)?;
+        Ok(Expr::Call(Call::new(callee, paren, arguments)))
     }
 
     fn primary(&mut self) -> ParseResult<Expr> {
@@ -878,5 +911,30 @@ fun f(){ print x; // missing right brace
         let source = format!("fun hello({}) {{}}", params);
         let expected_output = "[line 1]: ParseError: Could not have more than 255 arguments";
         test_parser(&source, expected_output)
+    }
+
+    #[test]
+    fn normal_function_call() -> Result<(), std::io::Error> {
+        let source = "hello(\"world\"); // this call fuction `hello`";
+        let expected_output = "
+Stmt::Expr(Expr::Call(callee=Expr::Variable(hello) arguments=\"world\"))
+        ";
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn missing_parts_function_call() -> Result<(), std::io::Error> {
+        let source = "
+hello); // missing left paren
+hello(1, 2; // missing right paren
+hello(,); // missing parameter name
+";
+
+        let expected_output = "
+[line 2]: ParseError: Expected `;`. Found `)`\n[line 3]: ParseError: Expected `)`. Found `;`
+[line 4]: ParseError: Expected expression
+    ";
+
+        test_parser(source, expected_output)
     }
 }
