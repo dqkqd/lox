@@ -586,6 +586,9 @@ while (x <= 5) {
 104
 ";
 
+        test_parser(source, expected_output)
+    }
+
     #[test]
     fn function_call() -> Result<(), std::io::Error> {
         let source = "

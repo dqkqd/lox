@@ -18,7 +18,9 @@ impl RuntimeErrorType {
             RuntimeErrorType::ObjectError(e) => e.to_string(),
             RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{}`", name),
             RuntimeErrorType::WriteError(err) => err.to_string(),
-            RuntimeErrorType::NumberArgumentsMismatch(paramc, argc) => format!("Expected {} arguments. Found {} arguments", paramc, argc)
+            RuntimeErrorType::NumberArgumentsMismatch(paramc, argc) => {
+                format!("Expected {} arguments. Found {} arguments", paramc, argc)
+            }
         }
     }
 }

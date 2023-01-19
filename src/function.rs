@@ -34,7 +34,11 @@ impl LoxCallable for LoxFunction {
         interpreter.environment_mut().move_to_inner();
 
         if self.arity() != arguments.len() {
-            return Err(RuntimeError::number_arguments_mismatch(self.declaration.name.line(), self.arity(), arguments.len()));
+            return Err(RuntimeError::number_arguments_mismatch(
+                self.declaration.name.line(),
+                self.arity(),
+                arguments.len(),
+            ));
         }
 
         for (param, arg) in self.declaration.params.iter().zip(arguments) {
