@@ -40,6 +40,7 @@ impl Visitor<String, String> for AstRepr {
                 Object::Number(n) => (*n).to_string(),
                 Object::String(s) => format!("\"{}\"", s),
                 Object::Bool(b) => b.to_string(),
+                Object::Callable(fun) => format!("<fn {}>", fun.name().lexeme()),
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);

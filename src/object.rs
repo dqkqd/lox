@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-use crate::error::object_error::ObjectError;
+use crate::{error::object_error::ObjectError, function::LoxFunction};
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
@@ -12,6 +12,7 @@ pub(crate) enum Object {
     Number(Number),
     String(String),
     Bool(bool),
+    Callable(LoxFunction),
 }
 
 impl Object {
@@ -107,6 +108,7 @@ impl ToString for Object {
             Object::Number(number) => number.clone().to_string(),
             Object::String(string) => string.clone(),
             Object::Bool(b) => b.to_string(),
+            Object::Callable(fun) => format!("<fn {}>", fun.name().lexeme()),
         }
     }
 }

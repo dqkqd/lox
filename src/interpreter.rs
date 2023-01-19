@@ -1,8 +1,9 @@
 use std::io::StdoutLock;
 
 use crate::{
-    environment::Environment, error::runtime_error::RuntimeError, expr::Expr, object::Object,
-    stmt::Stmt, token::TokenType, visitor::Visitor,
+    callable::LoxCallable, environment::Environment, error::runtime_error::RuntimeError,
+    expr::Expr, function::LoxFunction, object::Object, stmt::Stmt, token::TokenType,
+    visitor::Visitor,
 };
 
 pub(crate) struct Interpreter<W>
@@ -40,7 +41,7 @@ where
         e.walk_epxr(self)
     }
 
-    fn stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
+    pub fn stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
         s.walk_stmt(self)
     }
 
@@ -52,6 +53,10 @@ where
                 _ => None,
             })
             .collect();
+    }
+
+    pub fn environment_mut(&mut self) -> &mut Environment {
+        &mut self.environment
     }
 
     pub fn write(&mut self, s: &str) -> Result<(), std::io::Error> {
@@ -149,7 +154,19 @@ where
                 self.visit_expr(&logical.right)
             }
             Expr::Call(call) => {
-                unimplemented!()
+                let callee = self.visit_expr(&call.callee)?;
+                match callee {
+                    Object::Callable(callee) => {
+                        let arguments: InterpreterResult<Vec<_>> = call
+                            .arguments
+                            .iter()
+                            .map(|arg| self.visit_expr(arg))
+                            .collect();
+                        let arguments = arguments?;
+                        callee.call(self, arguments)
+                    }
+                    _ => todo!("this should throw error"),
+                }
             }
         }
     }
@@ -192,7 +209,10 @@ where
             },
 
             Stmt::Function(fun) => {
-                unimplemented!()
+                self.environment.define(
+                    fun.name.lexeme(),
+                    Object::Callable(LoxFunction::new(fun.clone())),
+                );
             }
         }
         Ok(())

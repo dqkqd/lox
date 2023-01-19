@@ -9,6 +9,7 @@ pub(crate) enum RuntimeErrorType {
     ObjectError(ObjectError),
     UndefinedVariable(String),
     WriteError(String),
+    NumberArgumentsMismatch(usize, usize),
 }
 
 impl RuntimeErrorType {
@@ -17,6 +18,7 @@ impl RuntimeErrorType {
             RuntimeErrorType::ObjectError(e) => e.to_string(),
             RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{}`", name),
             RuntimeErrorType::WriteError(err) => err.to_string(),
+            RuntimeErrorType::NumberArgumentsMismatch(paramc, argc) => format!("Expected {} arguments. Found {} arguments", paramc, argc)
         }
     }
 }
@@ -32,6 +34,13 @@ impl RuntimeError {
         Self {
             line: token.line(),
             error_type: RuntimeErrorType::UndefinedVariable(token.lexeme().to_string()),
+        }
+    }
+
+    pub fn number_arguments_mismatch(line: usize, params_count: usize, args_count: usize) -> Self {
+        Self {
+            line,
+            error_type: RuntimeErrorType::NumberArgumentsMismatch(params_count, args_count),
         }
     }
 }

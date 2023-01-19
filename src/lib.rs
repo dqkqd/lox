@@ -24,4 +24,8 @@ pub(crate) mod stmt;
 
 pub(crate) mod environment;
 
+pub(crate) mod callable;
+
+pub(crate) mod function;
+
 pub use cli::exec;
