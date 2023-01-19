@@ -931,7 +931,8 @@ hello(,); // missing parameter name
 ";
 
         let expected_output = "
-[line 2]: ParseError: Expected `;`. Found `)`\n[line 3]: ParseError: Expected `)`. Found `;`
+[line 2]: ParseError: Expected `;`. Found `)`
+[line 3]: ParseError: Expected `)`. Found `;`
 [line 4]: ParseError: Expected expression
     ";
 
