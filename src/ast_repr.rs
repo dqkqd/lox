@@ -3,6 +3,7 @@ use crate::{callable::Callable, expr::Expr, object::Object, stmt::Stmt, visitor:
 #[derive(Default)]
 pub(crate) struct AstRepr;
 
+#[allow(dead_code)]
 impl AstRepr {
     pub fn expr(&mut self, e: &Expr) -> String {
         e.walk_epxr(self)

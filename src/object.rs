@@ -18,6 +18,7 @@ pub(crate) enum Object {
     Callable(LoxCallable),
 }
 
+#[allow(dead_code)]
 impl Object {
     pub fn as_null(&self) -> Option<Object> {
         match self {

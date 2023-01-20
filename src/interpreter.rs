@@ -23,6 +23,7 @@ where
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
 
+#[allow(dead_code)]
 impl<W> Interpreter<W>
 where
     W: std::io::Write,

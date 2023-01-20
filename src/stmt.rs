@@ -23,6 +23,7 @@ pub(crate) struct Expression {
     pub expression: Expr,
 }
 
+#[allow(dead_code)]
 impl Expression {
     pub fn new(expression: Expr) -> Self {
         Expression { expression }
@@ -32,12 +33,6 @@ impl Expression {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Print {
     pub expression: Expr,
-}
-
-impl Print {
-    pub fn new(expression: Expr) -> Self {
-        Print { expression }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
