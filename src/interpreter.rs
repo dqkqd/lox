@@ -262,7 +262,7 @@ mod test {
 
     use super::*;
 
-    fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+    fn test_interpreter(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
         let mut result = Vec::new();
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
@@ -307,7 +307,7 @@ mod test {
 [line 5]: RuntimeError: Could not negative non-number
 [line 6]: RuntimeError: Could not negative non-number
             ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -326,7 +326,7 @@ false
 true
 false
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -341,7 +341,7 @@ true - nil;
 [line 3]: RuntimeError: Could not subtract non-number
 [line 4]: RuntimeError: Could not subtract non-number
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -356,7 +356,7 @@ true * nil;
 [line 3]: RuntimeError: Could not multiply non-number
 [line 4]: RuntimeError: Could not multiply non-number
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -371,7 +371,7 @@ true / nil;
 [line 3]: RuntimeError: Could not divide non-number
 [line 4]: RuntimeError: Could not divide non-number
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -382,7 +382,7 @@ true / nil;
         let expected_output = "
 [line 2]: RuntimeError: Division by zero
     ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -398,7 +398,7 @@ nil + false;
 Hello World
 [line 4]: RuntimeError: Could not add non-number or non-string together
 [line 5]: RuntimeError: Could not add non-number or non-string together";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -423,7 +423,7 @@ true
 [line 8]: RuntimeError: Could not compare non-number together
 [line 9]: RuntimeError: Could not compare non-number together
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -444,7 +444,7 @@ true
 true
 false
             ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -457,7 +457,7 @@ print 1 == true;
 true
 false
             ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -470,7 +470,7 @@ var y
         let expected_output = "
 [line 5]: ParseError: Expected `;`. Found `EOF`
 1";
-        test_parser(source, expected_output)?;
+        test_interpreter(source, expected_output)?;
         Ok(())
     }
 
@@ -485,7 +485,7 @@ x = y;
         let expected_output = "
 2
 [line 5]: RuntimeError: Undefined variable `y`";
-        test_parser(source, expected_output)?;
+        test_interpreter(source, expected_output)?;
         Ok(())
     }
 
@@ -523,7 +523,7 @@ global a
 global b
 global c
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -533,7 +533,7 @@ if (true)
     print \"if then\";
 ";
         let expected_output = "if then";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -545,7 +545,7 @@ else
     print \"if then else\";
 ";
         let expected_output = "if then else";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -559,7 +559,7 @@ if (false)
         print \"nested if then else\";
 ";
         let expected_output = "nested if then";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -576,7 +576,7 @@ if (false)
 [line 3]: ParseError: Expected `(`. Found `true`
 [line 6]: ParseError: Expected `)`. Found `;`
 ";
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -597,7 +597,7 @@ false
 3
 ";
 
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -620,7 +620,7 @@ while (x <= 5) {
 104
 ";
 
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -640,7 +640,7 @@ f(5);
 6
 ";
 
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -654,7 +654,7 @@ f(3, 4);
 [line 3]: RuntimeError: Expected 1 arguments. Found 2 arguments
         ";
 
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 
     #[test]
@@ -673,7 +673,7 @@ print x >= {};
 
         let expected_output = "true";
 
-        test_parser(&source, expected_output)
+        test_interpreter(&source, expected_output)
     }
 
     #[test]
@@ -709,6 +709,6 @@ print f2(5); // 3 and nothing
 3
 ";
 
-        test_parser(source, expected_output)
+        test_interpreter(source, expected_output)
     }
 }
