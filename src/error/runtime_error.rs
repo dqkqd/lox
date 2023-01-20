@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::token::Token;
+use crate::{object::Object, token::Token};
 
 use super::object_error::ObjectError;
 
@@ -10,6 +10,7 @@ pub(crate) enum RuntimeErrorType {
     UndefinedVariable(String),
     WriteError(String),
     NumberArgumentsMismatch(usize, usize),
+    ReturnValue(Object), // this is not error
 }
 
 impl RuntimeErrorType {
@@ -21,6 +22,7 @@ impl RuntimeErrorType {
             RuntimeErrorType::NumberArgumentsMismatch(paramc, argc) => {
                 format!("Expected {} arguments. Found {} arguments", paramc, argc)
             }
+            RuntimeErrorType::ReturnValue(_) => unreachable!("this should not be called as error"),
         }
     }
 }
@@ -43,6 +45,20 @@ impl RuntimeError {
         Self {
             line,
             error_type: RuntimeErrorType::NumberArgumentsMismatch(params_count, args_count),
+        }
+    }
+
+    pub fn return_value(line: usize, value: Object) -> Self {
+        Self {
+            line,
+            error_type: RuntimeErrorType::ReturnValue(value),
+        }
+    }
+
+    pub fn get_value_from_return(self) -> Object {
+        match self.error_type {
+            RuntimeErrorType::ReturnValue(object) => object,
+            _ => Object::Null,
         }
     }
 }

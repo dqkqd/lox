@@ -4,6 +4,7 @@ use crate::{expr::Expr, token::Token, visitor::Visitor};
 pub(crate) enum Stmt {
     Expression(Expr),
     Print(Expr),
+    Return(Return),
     Function(Function),
     Var(Var),
     Block(Block),
@@ -111,5 +112,17 @@ impl Function {
             params,
             body: Box::new(body),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Return {
+    pub keyword: Token,
+    pub value: Expr,
+}
+
+impl Return {
+    pub fn new(keyword: Token, value: Expr) -> Self {
+        Self { keyword, value }
     }
 }

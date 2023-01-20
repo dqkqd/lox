@@ -188,8 +188,10 @@ where
                                 arguments.len(),
                             ));
                         }
-
-                        callee.call(self, arguments)
+                        // todo: we might not need this one
+                        let result = callee.call(self, arguments);
+                        let result = result.unwrap_or_else(|err| err.get_value_from_return());
+                        Ok(result)
                     }
                     _ => todo!("this should throw error"),
                 }
@@ -239,6 +241,12 @@ where
                     fun.name.lexeme(),
                     Object::Callable(LoxCallable::lox_function(fun.clone())),
                 );
+            }
+
+            Stmt::Return(return_statement) => {
+                let line = return_statement.keyword.line();
+                let value = self.visit_expr(&return_statement.value)?;
+                return Err(RuntimeError::return_value(line, value));
             }
         }
         Ok(())
@@ -666,5 +674,41 @@ print x >= {};
         let expected_output = "true";
 
         test_parser(&source, expected_output)
+    }
+
+    #[test]
+    fn return_statement() -> Result<(), std::io::Error> {
+        let source = "
+// normal return
+fun f1(x) {
+    return x + 5;
+}
+print f1(2); // 7
+
+// nested return
+fun f2(x) {
+    if (x > 5) 
+        return 5;
+    else 
+        return x;
+}
+print f2(8); // 5
+print f2(1); // 1
+
+// no return
+fun f2(x) {
+    print 3;
+}
+print f2(5); // 3 and nothing
+        ";
+
+        let expected_output = "
+7
+5
+1
+3
+";
+
+        test_parser(source, expected_output)
     }
 }

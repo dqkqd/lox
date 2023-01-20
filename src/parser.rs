@@ -7,7 +7,7 @@ use crate::{
     expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Block, Function, If, Stmt, Var, While},
+    stmt::{Block, Function, If, Return, Stmt, Var, While},
     token::{Token, TokenType},
 };
 
@@ -171,6 +171,11 @@ impl Parser {
                 self.next();
                 self.print_statement()
             }
+            TokenType::Return => {
+                // we need keyword return to find the line
+                // so we don't call self.next() here
+                self.return_statement()
+            }
             TokenType::While => {
                 self.next();
                 self.while_statement()
@@ -185,6 +190,16 @@ impl Parser {
             }
             _ => self.expression_statement(),
         }
+    }
+
+    fn return_statement(&mut self) -> ParseResult<Stmt> {
+        let keyword = self.consume(TokenType::Return)?;
+        let value = match self.peek_type() {
+            TokenType::Semicolon => Expr::Literal(Object::Null),
+            _ => self.expression()?,
+        };
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Return(Return::new(keyword, value)))
     }
 
     fn print_statement(&mut self) -> ParseResult<Stmt> {
@@ -935,6 +950,26 @@ hello(,); // missing parameter name
 [line 3]: ParseError: Expected `)`. Found `;`
 [line 4]: ParseError: Expected expression
     ";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn return_statement() -> Result<(), std::io::Error> {
+        let source = "
+fun f(x) {
+    return x;
+}
+
+fun f(x) {
+    return;
+}
+        ";
+
+        let expected_output = "
+Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(Expr::Variable(x))))
+Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(nil)))
+        ";
 
         test_parser(source, expected_output)
     }

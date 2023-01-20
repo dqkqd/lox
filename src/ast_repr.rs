@@ -139,6 +139,10 @@ impl Visitor<String, String> for AstRepr {
                     name, params, body
                 )
             }
+            Stmt::Return(return_statement) => {
+                let value = self.visit_expr(&return_statement.value);
+                format!("Stmt::Return({})", value)
+            }
         }
     }
 }
