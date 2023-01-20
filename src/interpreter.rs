@@ -190,7 +190,10 @@ where
                         }
                         callee.call(self, arguments)
                     }
-                    _ => todo!("this should throw error"),
+                    _ => Err(RuntimeError::object_not_callable(
+                        call.paren.line(),
+                        &callee,
+                    )),
                 }
             }
         }

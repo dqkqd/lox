@@ -10,6 +10,7 @@ pub(crate) enum RuntimeErrorType {
     UndefinedVariable(String),
     WriteError(String),
     NumberArgumentsMismatch(usize, usize),
+    ObjectNotCallable(String),
     ReturnValue(Object), // this is not error
 }
 
@@ -23,6 +24,7 @@ impl RuntimeErrorType {
                 format!("Expected {} arguments. Found {} arguments", paramc, argc)
             }
             RuntimeErrorType::ReturnValue(_) => unreachable!("this should not be called as error"),
+            RuntimeErrorType::ObjectNotCallable(name) => format!("`{}` is not a function", name),
         }
     }
 }
@@ -45,6 +47,13 @@ impl RuntimeError {
         Self {
             line,
             error_type: RuntimeErrorType::NumberArgumentsMismatch(params_count, args_count),
+        }
+    }
+
+    pub fn object_not_callable(line: usize, object: &Object) -> Self {
+        Self {
+            line,
+            error_type: RuntimeErrorType::ObjectNotCallable(object.to_string()),
         }
     }
 
