@@ -617,4 +617,18 @@ f(5);
 
         test_parser(source, expected_output)
     }
+
+    #[test]
+    fn function_call_arguments_mismatch() -> Result<(), std::io::Error> {
+        let source = "
+fun f(x) {print x + 1;}
+f(3, 4);
+        ";
+
+        let expected_output = "
+[line 3]: RuntimeError: Expected 1 arguments. Found 2 arguments
+        ";
+
+        test_parser(source, expected_output)
+    }
 }
