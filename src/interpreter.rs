@@ -163,6 +163,15 @@ where
                             .map(|arg| self.visit_expr(arg))
                             .collect();
                         let arguments = arguments?;
+
+                        if arguments.len() != callee.arity() {
+                            return Err(RuntimeError::number_arguments_mismatch(
+                                call.paren.line(),
+                                callee.arity(),
+                                arguments.len(),
+                            ));
+                        }
+
                         callee.call(self, arguments)
                     }
                     _ => todo!("this should throw error"),

@@ -32,6 +32,14 @@ impl LoxCallable for LoxFunction {
         W: std::io::Write,
     {
         interpreter.environment_mut().move_to_inner();
+        for (param, arg) in self.declaration.params.iter().zip(arguments) {
+            interpreter.environment_mut().define(param.lexeme(), arg);
+        }
+        interpreter.stmt(&self.declaration.body)?;
+        interpreter.environment_mut().move_to_outer();
+        return Ok(Object::Null);
+    }
+}
 
         if self.arity() != arguments.len() {
             return Err(RuntimeError::number_arguments_mismatch(
