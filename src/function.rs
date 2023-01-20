@@ -37,9 +37,12 @@ impl Callable for LoxFunction {
         for (param, arg) in self.declaration.params.iter().zip(arguments) {
             interpreter.environment_mut().define(param.lexeme(), arg);
         }
-        interpreter.stmt(&self.declaration.body)?;
+        let result = interpreter
+            .stmt(&self.declaration.body)
+            .map(|_| Object::Null)
+            .unwrap_or_else(|err| err.get_value_from_return());
         interpreter.environment_mut().move_to_outer();
-        Ok(Object::Null)
+        Ok(result)
     }
 }
 

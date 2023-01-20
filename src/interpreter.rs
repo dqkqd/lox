@@ -181,7 +181,6 @@ where
                             .map(|arg| self.visit_expr(arg))
                             .collect();
                         let arguments = arguments?;
-
                         if arguments.len() != callee.arity() {
                             return Err(RuntimeError::number_arguments_mismatch(
                                 call.paren.line(),
@@ -189,10 +188,7 @@ where
                                 arguments.len(),
                             ));
                         }
-                        // todo: we might not need this one
-                        let result = callee.call(self, arguments);
-                        let result = result.unwrap_or_else(|err| err.get_value_from_return());
-                        Ok(result)
+                        callee.call(self, arguments)
                     }
                     _ => todo!("this should throw error"),
                 }
@@ -216,10 +212,16 @@ where
             }
             Stmt::Block(block) => {
                 self.environment.move_to_inner();
-                for stmt in &block.statements {
-                    self.stmt(stmt)?;
-                }
+                let error = block
+                    .statements
+                    .iter()
+                    .map(|s| self.visit_stmt(s))
+                    .filter(|r| r.is_err())
+                    .next();
                 self.environment.move_to_outer();
+                if error.is_some() {
+                    return error.unwrap();
+                }
             }
             Stmt::If(if_statement) => {
                 let condition = self.visit_expr(&if_statement.condition)?;
@@ -710,6 +712,33 @@ print f2(5); // 3 and nothing
 3
 ";
 
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn feature() -> Result<(), std::io::Error> {
+        let source = "
+fun fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+for (var i = 1; i < 10; i = i + 1) {
+    print fib(i);
+}
+    ";
+
+        let expected_output = "
+1
+1
+2
+3
+5
+8
+13
+21
+34
+        ";
         test_interpreter(source, expected_output)
     }
 }
