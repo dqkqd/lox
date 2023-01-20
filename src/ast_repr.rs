@@ -1,4 +1,4 @@
-use crate::{expr::Expr, object::Object, stmt::Stmt, visitor::Visitor};
+use crate::{callable::Callable, expr::Expr, object::Object, stmt::Stmt, visitor::Visitor};
 
 #[derive(Default)]
 pub(crate) struct AstRepr;
@@ -40,7 +40,7 @@ impl Visitor<String, String> for AstRepr {
                 Object::Number(n) => (*n).to_string(),
                 Object::String(s) => format!("\"{}\"", s),
                 Object::Bool(b) => b.to_string(),
-                Object::Callable(fun) => format!("<fn {}>", fun.name().lexeme()),
+                Object::Callable(fun) => format!("<fn {}>", fun.name()),
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);

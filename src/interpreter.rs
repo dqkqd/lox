@@ -1,8 +1,14 @@
 use std::io::StdoutLock;
 
 use crate::{
-    callable::LoxCallable, environment::Environment, error::runtime_error::RuntimeError,
-    expr::Expr, function::LoxFunction, object::Object, stmt::Stmt, token::TokenType,
+    callable::{Callable, LoxCallable},
+    environment::Environment,
+    error::runtime_error::RuntimeError,
+    expr::Expr,
+    function::NativeFunction,
+    object::Object,
+    stmt::Stmt,
+    token::TokenType,
     visitor::Visitor,
 };
 
@@ -27,6 +33,16 @@ where
             environment: Environment::default(),
             errors: Default::default(),
         }
+        .with_predefined_native_function()
+    }
+
+    pub fn with_predefined_native_function(mut self) -> Self {
+        let clock = NativeFunction::clock();
+        self.environment.define(
+            "clock",
+            Object::Callable(LoxCallable::native_function(clock)),
+        );
+        self
     }
 
     pub fn had_error(&self) -> bool {
@@ -71,6 +87,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
             environment: Environment::default(),
             errors: Default::default(),
         }
+        .with_predefined_native_function()
     }
 }
 
@@ -220,7 +237,7 @@ where
             Stmt::Function(fun) => {
                 self.environment.define(
                     fun.name.lexeme(),
-                    Object::Callable(LoxFunction::new(fun.clone())),
+                    Object::Callable(LoxCallable::lox_function(fun.clone())),
                 );
             }
         }
@@ -231,7 +248,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use std::io::Write;
+    use std::{io::Write, time::SystemTime};
 
     use crate::{parser::Parser, scanner::Scanner};
 
@@ -630,5 +647,24 @@ f(3, 4);
         ";
 
         test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn navtive_clock_function() -> Result<(), std::io::Error> {
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+
+        let source = format!(
+            "
+var x = clock();
+print x >= {};
+",
+            now.as_millis()
+        );
+
+        let expected_output = "true";
+
+        test_parser(&source, expected_output)
     }
 }
