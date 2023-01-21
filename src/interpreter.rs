@@ -217,11 +217,10 @@ where
                     .statements
                     .iter()
                     .map(|s| self.visit_stmt(s))
-                    .filter(|r| r.is_err())
-                    .next();
+                    .find(|r| r.is_err());
                 self.environment.move_to_outer();
-                if error.is_some() {
-                    return error.unwrap();
+                if let Some(error) = error {
+                    return error;
                 }
             }
             Stmt::If(if_statement) => {
