@@ -2,7 +2,7 @@ use std::io::StdoutLock;
 
 use crate::{
     callable::{Callable, LoxCallable},
-    environment::Environment,
+    environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     expr::Expr,
     function::NativeFunction,
@@ -17,7 +17,7 @@ where
     W: std::io::Write,
 {
     writer: W,
-    environment: Environment,
+    environment: EnvironmentTree,
     errors: Vec<RuntimeError>,
 }
 
@@ -31,7 +31,7 @@ where
     pub fn new(writer: W) -> Self {
         Self {
             writer,
-            environment: Environment::default(),
+            environment: EnvironmentTree::default(),
             errors: Default::default(),
         }
         .with_predefined_native_function()
@@ -72,7 +72,7 @@ where
             .collect();
     }
 
-    pub fn environment_mut(&mut self) -> &mut Environment {
+    pub fn environment_mut(&mut self) -> &mut EnvironmentTree {
         &mut self.environment
     }
 
@@ -85,7 +85,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
     fn default() -> Self {
         Self {
             writer: std::io::stdout().lock(),
-            environment: Environment::default(),
+            environment: EnvironmentTree::default(),
             errors: Default::default(),
         }
         .with_predefined_native_function()
@@ -150,14 +150,12 @@ where
             Expr::Variable(var) => self
                 .environment
                 .get(&var.name)
-                .cloned()
                 .ok_or_else(|| RuntimeError::undefined_variable(&var.name)),
             Expr::Assign(assign) => {
                 let name = &assign.name;
                 let value = self.visit_expr(&assign.value)?;
                 self.environment
                     .assign(name, value)
-                    .cloned()
                     .ok_or_else(|| RuntimeError::undefined_variable(name))
             }
             Expr::Logical(logical) => {

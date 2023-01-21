@@ -1,48 +1,77 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{object::Object, token::Token};
 
+type EnvironmentLink = Rc<RefCell<EnvironmentNode>>;
+
 #[derive(Debug, Clone, Default)]
-pub(crate) struct Environment {
+struct EnvironmentNode {
     values: HashMap<String, Object>,
-    parent: Option<Box<Environment>>,
+    parent: Option<EnvironmentLink>,
 }
 
-impl Environment {
+impl EnvironmentNode {
     pub fn define(&mut self, name: &str, value: Object) {
         self.values.insert(name.to_string(), value);
     }
 
-    pub fn get(&self, token: &Token) -> Option<&Object> {
+    pub fn get(&self, token: &Token) -> Option<Object> {
         let value = self.values.get(token.lexeme());
         if value.is_some() {
-            return value;
+            value.cloned()
+        } else {
+            self.parent.as_ref().and_then(|env| env.borrow().get(token))
         }
-        self.parent.as_ref().and_then(|env| env.get(token))
     }
 
-    pub fn assign(&mut self, token: &Token, value: Object) -> Option<&Object> {
+    pub fn assign(&mut self, token: &Token, value: Object) -> Option<Object> {
         if let Some(object) = self.values.get_mut(token.lexeme()) {
             *object = value;
-            return Some(object);
+            return Some(object.clone());
         }
         self.parent
             .as_mut()
-            .and_then(|env| env.assign(token, value))
+            .and_then(|env| env.borrow_mut().assign(token, value))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct EnvironmentTree {
+    // root is actually a child
+    root: EnvironmentLink,
+}
+
+impl EnvironmentTree {
+    pub fn define(&mut self, name: &str, value: Object) {
+        self.root.borrow_mut().define(name, value);
+    }
+
+    pub fn get(&self, token: &Token) -> Option<Object> {
+        self.root.borrow().get(token)
+    }
+
+    pub fn assign(&mut self, token: &Token, value: Object) -> Option<Object> {
+        self.root.borrow_mut().assign(token, value)
+    }
+
+    fn move_to_child(&self) -> Self {
+        EnvironmentTree {
+            root: Rc::new(RefCell::new(EnvironmentNode {
+                parent: Some(self.root.clone()),
+                ..Default::default()
+            })),
+        }
+    }
+
+    fn move_to_parent(&self) -> Option<Self> {
+        self.root.borrow().parent.clone().map(|root| Self { root })
     }
 
     pub fn move_to_inner(&mut self) {
-        // move current to fresh environment which's parent is the old one
-        let mut outer_environment = Environment::default();
-        std::mem::swap(self, &mut outer_environment);
-        self.parent = Some(Box::new(outer_environment));
+        *self = self.move_to_child();
     }
 
     pub fn move_to_outer(&mut self) {
-        // discard current environment and move to parent
-        let outer = self.parent.take();
-        if let Some(mut outer) = outer {
-            std::mem::swap(self, &mut outer)
-        }
+        *self = self.move_to_parent().unwrap_or_default();
     }
 }
