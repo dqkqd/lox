@@ -1,4 +1,5 @@
 use crate::{
+    environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     function::{LoxFunction, NativeFunction},
     interpreter::Interpreter,
@@ -10,7 +11,7 @@ pub(crate) trait Callable {
     fn name(&self) -> &str;
     fn arity(&self) -> usize;
     fn call<W>(
-        &self,
+        &mut self,
         interpreter: &mut Interpreter<W>,
         arguments: Vec<Object>,
     ) -> Result<Object, RuntimeError>
@@ -25,8 +26,8 @@ pub(crate) enum LoxCallable {
 }
 
 impl LoxCallable {
-    pub fn lox_function(declaration: Function) -> Self {
-        LoxCallable::LoxFunction(LoxFunction::new(declaration))
+    pub fn lox_function(declaration: Function, closure: EnvironmentTree) -> Self {
+        LoxCallable::LoxFunction(LoxFunction::new(declaration, closure))
     }
 
     pub fn native_function(native: NativeFunction) -> Self {
@@ -50,7 +51,7 @@ impl Callable for LoxCallable {
     }
 
     fn call<W>(
-        &self,
+        &mut self,
         interpreter: &mut Interpreter<W>,
         arguments: Vec<Object>,
     ) -> Result<Object, RuntimeError>

@@ -4,7 +4,7 @@ use crate::{object::Object, token::Token};
 
 type EnvironmentLink = Rc<RefCell<EnvironmentNode>>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 struct EnvironmentNode {
     values: HashMap<String, Object>,
     parent: Option<EnvironmentLink>,
@@ -35,7 +35,7 @@ impl EnvironmentNode {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct EnvironmentTree {
     // root is actually a child
     root: EnvironmentLink,
@@ -54,7 +54,7 @@ impl EnvironmentTree {
         self.root.borrow_mut().assign(token, value)
     }
 
-    fn move_to_child(&self) -> Self {
+    pub fn append(&self) -> Self {
         EnvironmentTree {
             root: Rc::new(RefCell::new(EnvironmentNode {
                 parent: Some(self.root.clone()),
@@ -63,15 +63,15 @@ impl EnvironmentTree {
         }
     }
 
-    fn move_to_parent(&self) -> Option<Self> {
+    pub fn pop(&self) -> Option<Self> {
         self.root.borrow().parent.clone().map(|root| Self { root })
     }
 
     pub fn move_to_inner(&mut self) {
-        *self = self.move_to_child();
+        *self = self.append();
     }
 
     pub fn move_to_outer(&mut self) {
-        *self = self.move_to_parent().unwrap_or_default();
+        *self = self.pop().unwrap_or_default();
     }
 }

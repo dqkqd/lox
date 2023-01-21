@@ -1,18 +1,22 @@
 use std::time::SystemTime;
 
 use crate::{
-    callable::Callable, error::runtime_error::RuntimeError, interpreter::Interpreter,
-    object::Object, stmt::Function,
+    callable::Callable, environment::EnvironmentTree, error::runtime_error::RuntimeError,
+    interpreter::Interpreter, object::Object, stmt::Function,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LoxFunction {
     declaration: Function,
+    closure: EnvironmentTree,
 }
 
 impl LoxFunction {
-    pub fn new(declaration: Function) -> Self {
-        Self { declaration }
+    pub fn new(declaration: Function, closure: EnvironmentTree) -> Self {
+        Self {
+            declaration,
+            closure,
+        }
     }
 }
 
@@ -26,22 +30,28 @@ impl Callable for LoxFunction {
     }
 
     fn call<W>(
-        &self,
+        &mut self,
         interpreter: &mut Interpreter<W>,
         arguments: Vec<Object>,
     ) -> Result<Object, RuntimeError>
     where
         W: std::io::Write,
     {
-        interpreter.environment_mut().move_to_inner();
+        self.closure.move_to_inner();
+
         for (param, arg) in self.declaration.params.iter().zip(arguments) {
-            interpreter.environment_mut().define(param.lexeme(), arg);
+            self.closure.define(param.lexeme(), arg);
         }
+
+        std::mem::swap(interpreter.environment_mut(), &mut self.closure);
         let result = interpreter
             .stmt(&self.declaration.body)
             .map(|_| Object::Null)
             .unwrap_or_else(|err| err.get_value_from_return());
-        interpreter.environment_mut().move_to_outer();
+        std::mem::swap(interpreter.environment_mut(), &mut self.closure);
+
+        self.closure.move_to_outer();
+
         Ok(result)
     }
 }
@@ -71,7 +81,7 @@ impl Callable for NativeFunction {
     }
 
     fn call<W>(
-        &self,
+        &mut self,
         interpreter: &mut Interpreter<W>,
         arguments: Vec<Object>,
     ) -> Result<Object, RuntimeError>
@@ -97,7 +107,7 @@ impl Callable for Clock {
         0
     }
 
-    fn call<W>(&self, _: &mut Interpreter<W>, _: Vec<Object>) -> Result<Object, RuntimeError>
+    fn call<W>(&mut self, _: &mut Interpreter<W>, _: Vec<Object>) -> Result<Object, RuntimeError>
     where
         W: std::io::Write,
     {

@@ -172,7 +172,7 @@ where
             Expr::Call(call) => {
                 let callee = self.visit_expr(&call.callee)?;
                 match callee {
-                    Object::Callable(callee) => {
+                    Object::Callable(mut callee) => {
                         let arguments: InterpreterResult<Vec<_>> = call
                             .arguments
                             .iter()
@@ -240,9 +240,10 @@ where
             },
 
             Stmt::Function(fun) => {
+                let closure = self.environment.append();
                 self.environment.define(
                     fun.name.lexeme(),
-                    Object::Callable(LoxCallable::lox_function(fun.clone())),
+                    Object::Callable(LoxCallable::lox_function(fun.clone(), closure)),
                 );
             }
 
@@ -716,7 +717,7 @@ print f2(5); // 3 and nothing
     }
 
     #[test]
-    fn feature() -> Result<(), std::io::Error> {
+    fn fibonacci() -> Result<(), std::io::Error> {
         let source = "
 fun fib(n) {
     if (n <= 1) return n;
@@ -739,6 +740,30 @@ for (var i = 1; i < 10; i = i + 1) {
 21
 34
         ";
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn closure() -> Result<(), std::io::Error> {
+        let source = "
+fun makeCounter() {
+  var i = 0;
+  fun count() {
+    i = i + 1;
+    print i;
+  }
+  return count;
+}
+var counter = makeCounter();
+counter(); // 1.
+counter(); // 2.
+";
+
+        let expected_output = "
+1
+2
+";
+
         test_interpreter(source, expected_output)
     }
 }
