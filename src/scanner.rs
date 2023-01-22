@@ -128,15 +128,15 @@ impl Scanner {
         self.read_while(|c| c != '\n')
     }
 
-    fn string(&mut self) -> ScanResult<Token> {
+    fn string(&mut self) -> ScanResult<TokenType> {
         let string = self.read_while(|c| c != '"');
         match self.next() {
-            Some(_) => Ok(self.make_token(TokenType::String(string))),
+            Some(_) => Ok(TokenType::String(string)),
             None => Err(SyntaxError::unterminated_string(self.line)),
         }
     }
 
-    fn number(&mut self) -> Token {
+    fn number(&mut self) -> TokenType {
         let mut numstr = self.read_while(|c| c.is_ascii_digit());
         if let Some('.') = self.peek() {
             let has_digit = self
@@ -154,14 +154,14 @@ impl Scanner {
 
         // this is always success
         let number = numstr.parse::<Number>().unwrap();
-        self.make_token(TokenType::Number(number))
+        TokenType::Number(number)
     }
 
-    fn identifier(&mut self) -> Token {
+    fn identifier(&mut self) -> TokenType {
         let identifier = self.read_while(|c| c.is_ascii_alphanumeric());
         match self.reserved_keywords.get(&identifier) {
-            Some(token_type) => self.make_token(token_type.clone()),
-            None => self.make_token(TokenType::Identifier(identifier.clone())),
+            Some(token_type) => token_type.clone(),
+            None => TokenType::Identifier(identifier.clone()),
         }
     }
 
@@ -170,47 +170,51 @@ impl Scanner {
     }
 
     fn scan_token(&mut self, c: char) -> Option<ScanResult<Token>> {
-        let token = match c {
+        let token_type = match c {
             // single lexeme
-            '(' => self.make_token(TokenType::LeftParen),
-            ')' => self.make_token(TokenType::RightParen),
-            '{' => self.make_token(TokenType::LeftBrace),
-            '}' => self.make_token(TokenType::RightBrace),
-            ',' => self.make_token(TokenType::Comma),
-            '.' => self.make_token(TokenType::Dot),
-            '-' => self.make_token(TokenType::Minus),
-            '+' => self.make_token(TokenType::Plus),
-            ';' => self.make_token(TokenType::Semicolon),
-            '*' => self.make_token(TokenType::Star),
+            '(' => TokenType::LeftParen,
+            ')' => TokenType::RightParen,
+            '{' => TokenType::LeftBrace,
+            '}' => TokenType::RightBrace,
+            ',' => TokenType::Comma,
+            '.' => TokenType::Dot,
+            '-' => TokenType::Minus,
+            '+' => TokenType::Plus,
+            ';' => TokenType::Semicolon,
+            '*' => TokenType::Star,
 
             // operators
             '!' => match self.peek() {
                 Some('=') => {
                     self.next();
-                    self.make_token(TokenType::BangEqual)
+
+                    TokenType::BangEqual
                 }
-                _ => self.make_token(TokenType::Bang),
+                _ => TokenType::Bang,
             },
             '=' => match self.peek() {
                 Some('=') => {
                     self.next();
-                    self.make_token(TokenType::EqualEqual)
+
+                    TokenType::EqualEqual
                 }
-                _ => self.make_token(TokenType::Equal),
+                _ => TokenType::Equal,
             },
             '<' => match self.peek() {
                 Some('=') => {
                     self.next();
-                    self.make_token(TokenType::LessEqual)
+
+                    TokenType::LessEqual
                 }
-                _ => self.make_token(TokenType::Less),
+                _ => TokenType::Less,
             },
             '>' => match self.peek() {
                 Some('=') => {
                     self.next();
-                    self.make_token(TokenType::GreaterEqual)
+
+                    TokenType::GreaterEqual
                 }
-                _ => self.make_token(TokenType::Greater),
+                _ => TokenType::Greater,
             },
 
             // comment.
@@ -222,7 +226,7 @@ impl Scanner {
                     self.single_line_comment();
                     return None;
                 }
-                _ => self.make_token(TokenType::Slash),
+                _ => TokenType::Slash,
             },
 
             // string
@@ -260,6 +264,8 @@ impl Scanner {
                 },
             },
         };
+
+        let token = self.make_token(token_type);
         Some(Ok(token))
     }
 
