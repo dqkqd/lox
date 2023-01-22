@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{object::Object, token::Token};
+use crate::{callable::LoxCallable, function::NativeFunction, object::Object, token::Token};
 
 type EnvironmentLink = Rc<RefCell<EnvironmentNode>>;
 
@@ -35,36 +35,81 @@ impl EnvironmentNode {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct EnvironmentTree {
-    // root is actually a child
-    root: EnvironmentLink,
+    env: Option<EnvironmentLink>,
+    global: EnvironmentLink,
+}
+
+impl Default for EnvironmentTree {
+    fn default() -> Self {
+        Self {
+            env: None,
+            global: EnvironmentLink::default(),
+        }
+        .with_prelude()
+    }
 }
 
 impl EnvironmentTree {
+    fn with_prelude(self) -> Self {
+        // define global environment
+        let clock = NativeFunction::clock();
+        self.global.borrow_mut().define(
+            "clock",
+            Object::Callable(LoxCallable::native_function(clock)),
+        );
+        self
+    }
+
     pub fn define(&mut self, name: &str, value: Object) {
-        self.root.borrow_mut().define(name, value);
+        let env = match self.env.as_ref() {
+            Some(env) => env,
+            None => self.global.as_ref(),
+        };
+        env.borrow_mut().define(name, value);
     }
 
     pub fn get(&self, token: &Token) -> Option<Object> {
-        self.root.borrow().get(token)
+        let result = self.env.as_ref().and_then(|env| env.borrow().get(token));
+        if result.is_some() {
+            result
+        } else {
+            self.global.borrow().get(token)
+        }
     }
 
     pub fn assign(&mut self, token: &Token, value: Object) -> Option<Object> {
-        self.root.borrow_mut().assign(token, value)
+        let result = self
+            .env
+            .as_ref()
+            .and_then(|env| env.borrow_mut().assign(token, value.clone()));
+        if result.is_some() {
+            result
+        } else {
+            self.global.borrow_mut().assign(token, value)
+        }
     }
 
     pub fn append(&self) -> Self {
         EnvironmentTree {
-            root: Rc::new(RefCell::new(EnvironmentNode {
-                parent: Some(self.root.clone()),
+            env: Some(Rc::new(RefCell::new(EnvironmentNode {
+                parent: self.env.clone(),
                 ..Default::default()
-            })),
+            }))),
+            global: Rc::clone(&self.global),
         }
     }
 
-    pub fn pop(&self) -> Option<Self> {
-        self.root.borrow().parent.clone().map(|root| Self { root })
+    pub fn pop(&self) -> Self {
+        let parent = self
+            .env
+            .as_ref()
+            .and_then(|env| env.borrow().parent.clone());
+        Self {
+            env: parent,
+            global: Rc::clone(&self.global),
+        }
     }
 
     pub fn move_to_inner(&mut self) {
@@ -72,6 +117,6 @@ impl EnvironmentTree {
     }
 
     pub fn move_to_outer(&mut self) {
-        *self = self.pop().unwrap_or_default();
+        *self = self.pop();
     }
 }
