@@ -86,12 +86,10 @@ impl Scanner {
     }
 
     fn next(&mut self) -> Option<char> {
-        if self.current >= self.source.len() {
-            None
-        } else {
+        self.peek().map(|c| {
             self.current += 1;
-            Some(self.source[self.current - 1])
-        }
+            c
+        })
     }
 
     fn lookahead(&self, distance: usize) -> Option<char> {
