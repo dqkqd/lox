@@ -38,11 +38,14 @@ where
     }
 
     pub fn with_predefined_native_function(mut self) -> Self {
+        // define global environment
         let clock = NativeFunction::clock();
         self.environment.define(
             "clock",
             Object::Callable(LoxCallable::native_function(clock)),
         );
+        // move global environment down 1 level
+        self.environment.move_to_inner();
         self
     }
 
