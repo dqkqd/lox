@@ -24,6 +24,16 @@ impl EnvironmentNode {
         }
     }
 
+    pub fn get_at(&self, token: &Token, depth: usize) -> Option<Object> {
+        if depth == 0 {
+            self.values.get(token.lexeme()).cloned()
+        } else {
+            self.parent
+                .as_ref()
+                .and_then(|env| env.borrow().get_at(token, depth - 1))
+        }
+    }
+
     pub fn assign(&mut self, token: &Token, value: Object) -> Option<Object> {
         if let Some(object) = self.values.get_mut(token.lexeme()) {
             *object = value;
@@ -32,6 +42,19 @@ impl EnvironmentNode {
         self.parent
             .as_mut()
             .and_then(|env| env.borrow_mut().assign(token, value))
+    }
+
+    pub fn assign_at(&mut self, token: &Token, value: Object, depth: usize) -> Option<Object> {
+        if depth == 0 {
+            self.values.get_mut(token.lexeme()).map(|object| {
+                *object = value;
+                object.clone()
+            })
+        } else {
+            self.parent
+                .as_mut()
+                .and_then(|env| env.borrow_mut().assign_at(token, value, depth - 1))
+        }
     }
 }
 
@@ -70,25 +93,36 @@ impl EnvironmentTree {
         env.borrow_mut().define(name, value);
     }
 
-    pub fn get(&self, token: &Token) -> Option<Object> {
-        let result = self.env.as_ref().and_then(|env| env.borrow().get(token));
-        if result.is_some() {
-            result
-        } else {
-            self.global.borrow().get(token)
-        }
-    }
-
-    pub fn assign(&mut self, token: &Token, value: Object) -> Option<Object> {
+    pub fn get_at(&self, token: &Token, depth: usize) -> Option<Object> {
         let result = self
             .env
             .as_ref()
-            .and_then(|env| env.borrow_mut().assign(token, value.clone()));
+            .and_then(|env| env.borrow().get_at(token, depth));
         if result.is_some() {
             result
         } else {
-            self.global.borrow_mut().assign(token, value)
+            self.get_global(token)
         }
+    }
+
+    pub fn get_global(&self, token: &Token) -> Option<Object> {
+        self.global.borrow().get(token)
+    }
+
+    pub fn assign_at(&mut self, token: &Token, value: Object, depth: usize) -> Option<Object> {
+        let result = self
+            .env
+            .as_mut()
+            .and_then(|env| env.borrow_mut().assign_at(token, value.clone(), depth));
+        if result.is_some() {
+            result
+        } else {
+            self.assign_global(token, value)
+        }
+    }
+
+    pub fn assign_global(&mut self, token: &Token, value: Object) -> Option<Object> {
+        self.global.borrow_mut().assign(token, value)
     }
 
     pub fn append(&self) -> Self {

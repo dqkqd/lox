@@ -62,10 +62,12 @@ where
         self.locals.insert(expr, depth);
     }
 
-    pub fn lookup_variable(&self, _expr: &Expr, name: &Token) -> InterpreterResult<Object> {
-        self.environment
-            .get(name)
-            .ok_or_else(|| RuntimeError::undefined_variable(name))
+    pub fn lookup_variable(&self, expr: &Expr, name: &Token) -> InterpreterResult<Object> {
+        let result = match self.locals.get(expr) {
+            Some(depth) => self.environment.get_at(name, *depth),
+            None => self.environment.get_global(name),
+        };
+        result.ok_or_else(|| RuntimeError::undefined_variable(name))
     }
 
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -157,9 +159,11 @@ where
             Expr::Assign(assign) => {
                 let name = &assign.name;
                 let value = self.visit_expr(&assign.value)?;
-                self.environment
-                    .assign(name, value)
-                    .ok_or_else(|| RuntimeError::undefined_variable(name))
+                let result = match self.locals.get(&e) {
+                    Some(depth) => self.environment.assign_at(name, value, *depth),
+                    None => self.environment.assign_global(name, value),
+                };
+                result.ok_or_else(|| RuntimeError::undefined_variable(name))
             }
             Expr::Logical(logical) => {
                 let left = self.visit_expr(&logical.left)?;
