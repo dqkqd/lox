@@ -5,20 +5,37 @@ use crate::{
     token::Token, visitor::Visitor,
 };
 
-pub(crate) struct Resolver<W>
+pub(crate) struct Resolver<'a, W>
 where
     W: std::io::Write,
 {
     scopes: Vec<HashMap<String, bool>>,
-    interpreter: Interpreter<W>,
+    errors: Vec<ResolveError>,
+    interpreter: &'a mut Interpreter<W>,
 }
 
 type ResolveResult<T> = Result<T, ResolveError>;
 
-impl<W> Resolver<W>
+impl<'a, W> Resolver<'a, W>
 where
     W: std::io::Write,
 {
+    pub fn new(interpreter: &'a mut Interpreter<W>) -> Self {
+        Self {
+            interpreter,
+            errors: Default::default(),
+            scopes: Default::default(),
+        }
+    }
+
+    pub fn had_error(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn errors(&self) -> &[ResolveError] {
+        &self.errors
+    }
+
     fn begin_scope(&mut self) {
         self.scopes.push(Default::default());
     }
@@ -52,9 +69,19 @@ where
             self.interpreter.resolve(expr, depth)
         }
     }
+
+    pub fn resolve(&mut self, statements: &[Stmt]) {
+        self.errors = statements
+            .iter()
+            .filter_map(|s| match self.visit_stmt(s) {
+                Err(error) => Some(error),
+                _ => None,
+            })
+            .collect();
+    }
 }
 
-impl<W> Visitor<ResolveResult<()>, ResolveResult<()>> for Resolver<W>
+impl<'a, W> Visitor<ResolveResult<()>, ResolveResult<()>> for Resolver<'a, W>
 where
     W: std::io::Write,
 {
