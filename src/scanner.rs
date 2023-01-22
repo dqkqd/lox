@@ -43,7 +43,7 @@ type ScanResult<T> = Result<T, SyntaxError>;
 
 #[derive(Debug, Clone, PartialEq, Hash, Copy)]
 pub(crate) struct CharPos {
-    ch: char,
+    pub ch: char,
     index: usize,
     pub line: usize,
     pub start_column: usize,
@@ -191,7 +191,7 @@ impl Scanner {
         let string = self.read_while(|c| c != '"');
         match self.next() {
             Some(_) => Ok(TokenType::String(string)),
-            None => Err(SyntaxError::unterminated_string(self.line)),
+            None => Err(SyntaxError::unterminated_string(self.prev_pos().unwrap())),
         }
     }
 
@@ -320,7 +320,9 @@ impl Scanner {
                         self.identifier()
                     }
                     false => {
-                        return Some(Err(SyntaxError::unexpected_character(self.line, c)));
+                        return Some(Err(SyntaxError::unexpected_character(
+                            self.prev_pos().unwrap(),
+                        )));
                     }
                 },
             },

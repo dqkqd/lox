@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::scanner::CharPos;
+
 #[derive(PartialEq)]
 enum SyntaxErrorType {
     UnterminatedString,
@@ -24,17 +26,17 @@ pub(crate) struct SyntaxError {
 }
 
 impl SyntaxError {
-    pub fn unterminated_string(line: usize) -> Self {
+    pub fn unterminated_string(pos: CharPos) -> Self {
         Self {
-            line,
+            line: pos.line,
             error_type: SyntaxErrorType::UnterminatedString,
         }
     }
 
-    pub fn unexpected_character(line: usize, ch: char) -> Self {
+    pub fn unexpected_character(pos: CharPos) -> Self {
         Self {
-            line,
-            error_type: SyntaxErrorType::UnexpectedCharacter(ch),
+            line: pos.line,
+            error_type: SyntaxErrorType::UnexpectedCharacter(pos.ch),
         }
     }
 }

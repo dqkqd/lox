@@ -43,23 +43,27 @@ impl RuntimeError {
         }
     }
 
-    pub fn number_arguments_mismatch(line: usize, params_count: usize, args_count: usize) -> Self {
+    pub fn number_arguments_mismatch(
+        token: &Token,
+        params_count: usize,
+        args_count: usize,
+    ) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: RuntimeErrorType::NumberArgumentsMismatch(params_count, args_count),
         }
     }
 
-    pub fn object_not_callable(line: usize, object: &Object) -> Self {
+    pub fn object_not_callable(token: &Token, object: &Object) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: RuntimeErrorType::ObjectNotCallable(object.to_string()),
         }
     }
 
-    pub fn return_value(line: usize, value: Object) -> Self {
+    pub fn return_value(token: &Token, value: Object) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: RuntimeErrorType::ReturnValue(value),
         }
     }

@@ -188,17 +188,14 @@ where
                         let arguments = arguments?;
                         if arguments.len() != callee.arity() {
                             return Err(RuntimeError::number_arguments_mismatch(
-                                call.paren.line(),
+                                &call.paren,
                                 callee.arity(),
                                 arguments.len(),
                             ));
                         }
                         callee.call(self, arguments)
                     }
-                    _ => Err(RuntimeError::object_not_callable(
-                        call.paren.line(),
-                        &callee,
-                    )),
+                    _ => Err(RuntimeError::object_not_callable(&call.paren, &callee)),
                 }
             }
         }
@@ -255,9 +252,8 @@ where
             }
 
             Stmt::Return(return_statement) => {
-                let line = return_statement.keyword.line();
                 let value = self.visit_expr(&return_statement.value)?;
-                return Err(RuntimeError::return_value(line, value));
+                return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
         }
         Ok(())

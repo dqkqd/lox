@@ -119,7 +119,7 @@ impl Parser {
                 params.push(param);
                 if params.len() >= MAXIMUM_ARGUMENTS {
                     return Err(ParseError::maximum_arguments(
-                        self.peek().line(),
+                        self.peek(),
                         MAXIMUM_ARGUMENTS,
                     ));
                 }
@@ -150,8 +150,7 @@ impl Parser {
             }
             _ => {
                 let error = ParseError::unexpected_token(
-                    self.peek().line(),
-                    self.peek_type(),
+                    self.peek(),
                     &TokenType::Identifier("variable name".to_string()),
                 );
                 Err(error)
@@ -315,7 +314,7 @@ impl Parser {
             if let Expr::Variable(var) = expr {
                 Ok(Expr::Assign(Assign::new(var.name, value)))
             } else {
-                Err(ParseError::invalid_assignment(equal.line()).without_panic())
+                Err(ParseError::invalid_assignment(&equal).without_panic())
             }
         } else {
             Ok(expr)
@@ -418,7 +417,7 @@ impl Parser {
                 arguments.push(arg);
                 if arguments.len() >= MAXIMUM_ARGUMENTS {
                     return Err(ParseError::maximum_arguments(
-                        self.peek().line(),
+                        self.peek(),
                         MAXIMUM_ARGUMENTS,
                     ));
                 }
@@ -446,7 +445,7 @@ impl Parser {
             }
             TokenType::Identifier(_) => Expr::Variable(Variable::new(self.peek().clone())),
             _ => {
-                let error = ParseError::expected_expression(self.peek().line());
+                let error = ParseError::expected_expression(self.peek());
                 return Err(error);
             }
         };
@@ -460,8 +459,7 @@ impl Parser {
             Ok(ident)
         } else {
             Err(ParseError::unexpected_token(
-                self.peek().line(),
-                self.peek_type(),
+                self.peek(),
                 &TokenType::Identifier(ident_info.to_string()),
             ))
         }
@@ -471,11 +469,7 @@ impl Parser {
         if self.peek_type() == &token_type {
             Ok(self.next().unwrap())
         } else {
-            Err(ParseError::unexpected_token(
-                self.peek().line(),
-                self.peek_type(),
-                &token_type,
-            ))
+            Err(ParseError::unexpected_token(self.peek(), &token_type))
         }
     }
 

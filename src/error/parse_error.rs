@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::token::TokenType;
+use crate::token::{Token, TokenType};
 
 #[derive(PartialEq)]
 pub(crate) enum ParseErrorType {
@@ -33,33 +33,36 @@ pub(crate) struct ParseError {
 }
 
 impl ParseError {
-    pub fn expected_expression(line: usize) -> Self {
+    pub fn expected_expression(token: &Token) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: ParseErrorType::ExpectedExpression,
             panic_mode: true,
         }
     }
 
-    pub fn unexpected_token(line: usize, found: &TokenType, expected: &TokenType) -> Self {
+    pub fn unexpected_token(found: &Token, expected: &TokenType) -> Self {
         Self {
-            line,
-            error_type: ParseErrorType::UnexpectedToken(found.to_string(), expected.to_string()),
+            line: found.line(),
+            error_type: ParseErrorType::UnexpectedToken(
+                found.token_type().to_string(),
+                expected.to_string(),
+            ),
             panic_mode: true,
         }
     }
 
-    pub fn invalid_assignment(line: usize) -> Self {
+    pub fn invalid_assignment(token: &Token) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: ParseErrorType::InvalidAssignment,
             panic_mode: true,
         }
     }
 
-    pub fn maximum_arguments(line: usize, size: usize) -> Self {
+    pub fn maximum_arguments(token: &Token, size: usize) -> Self {
         Self {
-            line,
+            line: token.line(),
             error_type: ParseErrorType::MaximumArguments(size),
             panic_mode: true,
         }
