@@ -164,7 +164,7 @@ where
                     self.define(param);
                 }
                 let result = self.visit_stmt(&fun.body);
-                self.function_level += 1;
+                self.function_level -= 1;
                 self.end_scope();
                 result?;
             }
@@ -276,12 +276,21 @@ fun bad() {
     #[test]
     fn return_at_top_level() -> Result<(), std::io::Error> {
         let source = "
+fun x() {
+    return 1;
+}
+
+{
+    return 2;
+}
+
 return 1;
-        ";
+";
 
         let expected_output = "
-[line 2]: ResolveError: Could not return from top level code
-        ";
+[line 7]: ResolveError: Could not return from top level code
+[line 10]: ResolveError: Could not return from top level code
+";
 
         test_resolver(source, expected_output)
     }
