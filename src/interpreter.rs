@@ -247,7 +247,7 @@ where
             },
 
             Stmt::Function(fun) => {
-                let closure = self.environment.append();
+                let closure = self.environment.clone();
                 self.environment.define(
                     fun.name.lexeme(),
                     Object::Callable(LoxCallable::lox_function(fun.clone(), closure)),
