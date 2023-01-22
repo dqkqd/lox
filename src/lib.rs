@@ -28,4 +28,6 @@ pub(crate) mod callable;
 
 pub(crate) mod function;
 
+pub(crate) mod resolver;
+
 pub use cli::exec;
