@@ -190,3 +190,59 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::{ast_repr::AstRepr, parser::Parser, scanner::Scanner};
+
+    use super::*;
+
+    fn test_resolver(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+        let mut result = Vec::new();
+        let mut interpreter = Interpreter::new(&mut result);
+
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        interpreter.write(&scanner.error_string())?;
+
+        let mut parser = Parser::from(&scanner);
+        let statements = parser.parse();
+        interpreter.write(&parser.error_string())?;
+
+        let mut resolver = Resolver::new(&mut interpreter);
+        resolver.resolve(&statements);
+        let error_string = resolver.error_string();
+        interpreter.write(&error_string)?;
+
+        let mut ast_repr = AstRepr::default();
+        let expr_depth_string = interpreter
+            .locals()
+            .iter()
+            .map(|(expr, depth)| format!("{}: {}", ast_repr.expr(expr), depth))
+            .collect::<Vec<_>>()
+            .join("\n");
+        interpreter.write(&expr_depth_string)?;
+
+        let result = String::from_utf8(result).unwrap();
+        assert_eq!(result.trim(), expected_output.trim());
+
+        Ok(())
+    }
+
+    #[test]
+    fn declare_using_its_own_initializer() -> Result<(), std::io::Error> {
+        let source = "
+var a = 2;
+{
+    var a = a;
+}
+        ";
+
+        let expected_output = "
+[line 4]: ResolveError: Couldn't read `a` in its own initializer
+        ";
+
+        test_resolver(source, expected_output)
+    }
+}

@@ -54,6 +54,10 @@ where
         s.walk_stmt(self)
     }
 
+    pub fn locals(&self) -> &HashMap<Expr, usize> {
+        &self.locals
+    }
+
     pub fn resolve(&mut self, expr: Expr, depth: usize) {
         self.locals.insert(expr, depth);
     }
