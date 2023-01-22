@@ -16,6 +16,7 @@ where
     scopes: Vec<HashMap<String, bool>>,
     errors: Vec<ResolveError>,
     interpreter: &'a mut Interpreter<W>,
+    function_level: usize,
 }
 
 type ResolveResult<T> = Result<T, ResolveError>;
@@ -38,6 +39,7 @@ where
             interpreter,
             errors: Default::default(),
             scopes: Default::default(),
+            function_level: 0,
         }
     }
 
@@ -147,17 +149,22 @@ where
                 self.visit_expr(p)?;
             }
             Stmt::Return(r) => {
+                if self.function_level == 0 {
+                    return Err(ResolveError::return_from_top_level(&r.keyword));
+                }
                 self.visit_expr(&r.value)?;
             }
             Stmt::Function(fun) => {
                 self.declare(&fun.name)?;
                 self.define(&fun.name);
                 self.begin_scope();
+                self.function_level += 1;
                 for param in &fun.params {
                     self.declare(param)?;
                     self.define(param);
                 }
                 let result = self.visit_stmt(&fun.body);
+                self.function_level += 1;
                 self.end_scope();
                 result?;
             }
@@ -261,6 +268,19 @@ fun bad() {
 
         let expected_output = "
 [line 4]: ResolveError: Already a variable `a` in this scope.
+        ";
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn return_at_top_level() -> Result<(), std::io::Error> {
+        let source = "
+return 1;
+        ";
+
+        let expected_output = "
+[line 2]: ResolveError: Could not return from top level code
         ";
 
         test_resolver(source, expected_output)

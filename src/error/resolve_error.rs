@@ -6,6 +6,7 @@ use crate::token::Token;
 pub(crate) enum ResolveErrorType {
     ReadDuringInitializer(String),
     VarAlreadyExistInScope(String),
+    ReturnFromTopLevel,
 }
 
 impl ResolveErrorType {
@@ -17,6 +18,7 @@ impl ResolveErrorType {
             ResolveErrorType::VarAlreadyExistInScope(name) => {
                 format!("Already a variable `{}` in this scope.", name)
             }
+            ResolveErrorType::ReturnFromTopLevel => format!("Could not return from top level code"),
         }
     }
 }
@@ -39,6 +41,13 @@ impl ResolveError {
         Self {
             line: token.line(),
             error_type: ResolveErrorType::VarAlreadyExistInScope(token.lexeme().to_string()),
+        }
+    }
+
+    pub fn return_from_top_level(token: &Token) -> Self {
+        Self {
+            line: token.line(),
+            error_type: ResolveErrorType::ReturnFromTopLevel,
         }
     }
 }
