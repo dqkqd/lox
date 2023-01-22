@@ -49,10 +49,14 @@ where
         self.scopes.pop();
     }
 
-    fn declare(&mut self, ident: &Token) {
+    fn declare(&mut self, ident: &Token) -> ResolveResult<()> {
         if let Some(last) = self.scopes.last_mut() {
+            if last.contains_key(ident.lexeme()) {
+                return Err(ResolveError::already_declared(ident));
+            }
             last.insert(ident.lexeme().to_string(), false);
         }
+        Ok(())
     }
 
     fn define(&mut self, ident: &Token) {
@@ -146,11 +150,11 @@ where
                 self.visit_expr(&r.value)?;
             }
             Stmt::Function(fun) => {
-                self.declare(&fun.name);
+                self.declare(&fun.name)?;
                 self.define(&fun.name);
                 self.begin_scope();
                 for param in &fun.params {
-                    self.declare(param);
+                    self.declare(param)?;
                     self.define(param);
                 }
                 let result = self.visit_stmt(&fun.body);
@@ -158,7 +162,7 @@ where
                 result?;
             }
             Stmt::Var(var) => {
-                self.declare(&var.identifier);
+                self.declare(&var.identifier)?;
                 self.visit_expr(&var.expression)?;
                 self.define(&var.identifier);
             }
@@ -241,6 +245,22 @@ var a = 2;
 
         let expected_output = "
 [line 4]: ResolveError: Couldn't read `a` in its own initializer
+        ";
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn already_declared_variable_in_scope() -> Result<(), std::io::Error> {
+        let source = "
+fun bad() {
+    var a = 1;
+    var a = 2;
+}        
+        ";
+
+        let expected_output = "
+[line 4]: ResolveError: Already a variable `a` in this scope.
         ";
 
         test_resolver(source, expected_output)

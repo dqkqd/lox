@@ -5,6 +5,7 @@ use crate::token::Token;
 #[derive(PartialEq)]
 pub(crate) enum ResolveErrorType {
     ReadDuringInitializer(String),
+    VarAlreadyExistInScope(String),
 }
 
 impl ResolveErrorType {
@@ -12,6 +13,9 @@ impl ResolveErrorType {
         match self {
             ResolveErrorType::ReadDuringInitializer(name) => {
                 format!("Couldn't read `{}` in its own initializer", name)
+            }
+            ResolveErrorType::VarAlreadyExistInScope(name) => {
+                format!("Already a variable `{}` in this scope.", name)
             }
         }
     }
@@ -28,6 +32,13 @@ impl ResolveError {
         Self {
             line: token.line(),
             error_type: ResolveErrorType::ReadDuringInitializer(token.lexeme().to_string()),
+        }
+    }
+
+    pub fn already_declared(token: &Token) -> Self {
+        Self {
+            line: token.line(),
+            error_type: ResolveErrorType::VarAlreadyExistInScope(token.lexeme().to_string()),
         }
     }
 }
