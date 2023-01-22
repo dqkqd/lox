@@ -77,6 +77,14 @@ impl Scanner {
         }
     }
 
+    fn peek(&self) -> Option<char> {
+        if self.current >= self.source.len() {
+            None
+        } else {
+            Some(self.source[self.current])
+        }
+    }
+
     fn next(&mut self) -> Option<char> {
         if self.current >= self.source.len() {
             None
@@ -86,20 +94,30 @@ impl Scanner {
         }
     }
 
+    fn lookahead(&self, distance: usize) -> Option<char> {
+        let index = self.current + distance;
+        if index >= self.source.len() {
+            None
+        } else {
+            Some(self.source[index])
+        }
+    }
+
     fn read_while<F>(&mut self, f: F) -> String
     where
         F: Fn(char) -> bool,
     {
         let mut string = String::new();
-        while let Some(c) = self.next() {
+        while let Some(c) = self.peek() {
             if !f(c) {
-                self.prev();
                 break;
             }
-            if c == '\n' {
-                self.line += 1;
-            }
-            string.push(c);
+            self.next().map(|c| {
+                if c == '\n' {
+                    self.line += 1;
+                }
+                string.push(c);
+            });
         }
         string
     }
@@ -118,18 +136,18 @@ impl Scanner {
 
     fn number(&mut self) -> Token {
         let mut numstr = self.read_while(|c| c.is_ascii_digit());
-        match self.next() {
-            Some('.') => {
-                let decimal = self.read_while(|c| c.is_ascii_digit());
-                if decimal.is_empty() {
-                    self.prev();
-                } else {
-                    numstr.push('.');
-                    numstr.push_str(&decimal);
-                }
+        if let Some('.') = self.peek() {
+            let has_digit = self
+                .lookahead(1)
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or_default();
+            if has_digit {
+                // skip dot
+                self.next();
+                numstr.push('.');
+                let fraction = self.read_while(|c| c.is_ascii_digit());
+                numstr.push_str(&fraction);
             }
-            Some(_) => self.prev(),
-            None => (),
         }
 
         // this is always success
@@ -164,62 +182,54 @@ impl Scanner {
             '*' => self.make_token(TokenType::Star),
 
             // operators
-            '!' => match self.next() {
-                Some('=') => self.make_token(TokenType::BangEqual),
-                c => {
-                    if c.is_some() {
-                        self.prev();
-                    }
-                    self.make_token(TokenType::Bang)
+            '!' => match self.peek() {
+                Some('=') => {
+                    self.next();
+                    self.make_token(TokenType::BangEqual)
                 }
+                _ => self.make_token(TokenType::Bang),
             },
-            '=' => match self.next() {
-                Some('=') => self.make_token(TokenType::EqualEqual),
-                c => {
-                    if c.is_some() {
-                        self.prev();
-                    }
-                    self.make_token(TokenType::Equal)
+            '=' => match self.peek() {
+                Some('=') => {
+                    self.next();
+                    self.make_token(TokenType::EqualEqual)
                 }
+                _ => self.make_token(TokenType::Equal),
             },
-            '<' => match self.next() {
-                Some('=') => self.make_token(TokenType::LessEqual),
-                c => {
-                    if c.is_some() {
-                        self.prev()
-                    }
-                    self.make_token(TokenType::Less)
+            '<' => match self.peek() {
+                Some('=') => {
+                    self.next();
+                    self.make_token(TokenType::LessEqual)
                 }
+                _ => self.make_token(TokenType::Less),
             },
-            '>' => match self.next() {
-                Some('=') => self.make_token(TokenType::GreaterEqual),
-                c => {
-                    if c.is_some() {
-                        self.prev()
-                    }
-                    self.make_token(TokenType::Greater)
+            '>' => match self.peek() {
+                Some('=') => {
+                    self.next();
+                    self.make_token(TokenType::GreaterEqual)
                 }
+                _ => self.make_token(TokenType::Greater),
             },
 
             // comment.
             // @TODO: add comment type /* */
-            '/' => match self.next() {
+            '/' => match self.peek() {
                 Some('/') => {
                     // read until next line
+                    self.next();
                     self.single_line_comment();
                     return None;
                 }
-                c => {
-                    if c.is_some() {
-                        self.prev()
-                    }
-                    self.make_token(TokenType::Slash)
-                }
+                _ => self.make_token(TokenType::Slash),
             },
 
             // string
             '"' => {
-                return Some(self.string());
+                let string = self.string();
+                match string {
+                    Err(err) => return Some(Err(err)),
+                    Ok(s) => s,
+                }
             }
 
             // whitespace
