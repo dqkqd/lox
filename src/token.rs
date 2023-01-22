@@ -1,4 +1,4 @@
-use crate::object::Number;
+use crate::{object::Number, scanner::CharPos};
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum TokenType {
@@ -61,16 +61,18 @@ impl From<Token> for TokenType {
 pub(crate) struct Token {
     token_type: TokenType,
     lexeme: String,
-    line: usize,
+    start_pos: CharPos,
+    end_pos: CharPos,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, line: usize) -> Self {
+    pub fn new(token_type: TokenType, start_pos: CharPos, end_pos: CharPos) -> Self {
         let lexeme = token_type.to_string();
         Self {
             token_type,
             lexeme,
-            line,
+            start_pos,
+            end_pos,
         }
     }
 
@@ -83,7 +85,11 @@ impl Token {
     }
 
     pub fn line(&self) -> usize {
-        self.line
+        self.start_pos.line
+    }
+
+    pub fn column(&self) -> usize {
+        self.start_pos.start_column
     }
 }
 

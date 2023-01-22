@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use unicode_width::UnicodeWidthChar;
+
 use crate::{
     error::{syntax_error::SyntaxError, ErrorReporter},
     object::Number,
@@ -39,9 +41,56 @@ pub(crate) fn generate_static_reserved_keywords() -> HashMap<String, TokenType> 
 
 type ScanResult<T> = Result<T, SyntaxError>;
 
+#[derive(Debug, Clone, PartialEq, Hash, Copy)]
+pub(crate) struct CharPos {
+    ch: char,
+    index: usize,
+    pub line: usize,
+    pub start_column: usize,
+    width: usize,
+}
+
+#[derive(Debug)]
+struct SourcePos {
+    positions: Vec<CharPos>,
+}
+
+impl SourcePos {
+    fn new(source: &str) -> Self {
+        let mut positions = Vec::with_capacity(source.len());
+
+        let mut line = 1;
+        let mut start_column = 1;
+
+        for (index, ch) in source.chars().enumerate() {
+            let width = UnicodeWidthChar::width(ch).unwrap_or(0);
+
+            let char_pos = CharPos {
+                ch,
+                index,
+                line,
+                start_column,
+                width,
+            };
+
+            if ch == '\n' {
+                line += 1;
+                start_column = 1;
+            } else {
+                start_column += width;
+            }
+
+            positions.push(char_pos);
+        }
+
+        Self { positions }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Scanner {
     source: Vec<char>,
+    source_pos: SourcePos,
     line: usize,
     current: usize,
     reserved_keywords: HashMap<String, TokenType>,
@@ -57,8 +106,10 @@ impl ErrorReporter<SyntaxError> for Scanner {
 
 impl Scanner {
     pub fn new(source: &str) -> Self {
+        let source_pos = SourcePos::new(source);
         Scanner {
             source: source.chars().collect(),
+            source_pos,
             line: 1,
             current: 0,
             reserved_keywords: generate_static_reserved_keywords(),
@@ -74,6 +125,14 @@ impl Scanner {
     fn prev(&mut self) {
         if self.current > 0 {
             self.current -= 1;
+        }
+    }
+
+    fn prev_pos(&self) -> Option<CharPos> {
+        if self.current > 0 {
+            Some(self.source_pos.positions[self.current - 1])
+        } else {
+            None
         }
     }
 
@@ -165,11 +224,13 @@ impl Scanner {
         }
     }
 
-    fn make_token(&self, token_type: TokenType) -> Token {
-        Token::new(token_type, self.line)
+    fn make_token(&self, token_type: TokenType, prev_pos: CharPos, cur_pos: CharPos) -> Token {
+        Token::new(token_type, prev_pos, cur_pos)
     }
 
     fn scan_token(&mut self, c: char) -> Option<ScanResult<Token>> {
+        let prev_pos = self.prev_pos().unwrap();
+
         let token_type = match c {
             // single lexeme
             '(' => TokenType::LeftParen,
@@ -265,7 +326,9 @@ impl Scanner {
             },
         };
 
-        let token = self.make_token(token_type);
+        let cur_pos = self.prev_pos().unwrap();
+        let token = self.make_token(token_type, prev_pos, cur_pos);
+
         Some(Ok(token))
     }
 
@@ -279,7 +342,11 @@ impl Scanner {
             }
         }
 
-        let eof = self.make_token(TokenType::Eof);
+        let eof = self.make_token(
+            TokenType::Eof,
+            self.prev_pos().unwrap(),
+            self.prev_pos().unwrap(),
+        );
         self.tokens.push(eof);
     }
 }

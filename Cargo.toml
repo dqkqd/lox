@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 clap = { version = "4.0.32", features = ["derive"] }
+unicode-width = "0.1.10"

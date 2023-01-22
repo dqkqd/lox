@@ -622,7 +622,7 @@ Stmt::Expr(Expr::Assign(x = \"string\"))
 Stmt::Expr(Expr::Assign(x = true))
 Stmt::Expr(Expr::Assign(x = nil))
 Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
-[line 4]: ParseError: Expected `;`. Found `EOF`";
+[line 3]: ParseError: Expected `;`. Found `EOF`";
 
         test_parser(source, expected_output)
     }
@@ -904,7 +904,7 @@ fun f(){ print x; // missing right brace
 [line 5]: ParseError: Expected `parameter name`. Found `,`
 [line 6]: ParseError: Expected `{`. Found `;`
 [line 7]: ParseError: Expected `{`. Found `}`
-[line 9]: ParseError: Expected `}`. Found `EOF`
+[line 8]: ParseError: Expected `}`. Found `EOF`
 ";
 
         test_parser(source, expected_output)
