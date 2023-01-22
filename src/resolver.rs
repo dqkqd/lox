@@ -41,16 +41,16 @@ where
         }
     }
 
-    fn resolve_local(&mut self, expr: &Expr, name: &Token) {
-        self.scopes
+    fn resolve_local(&mut self, expr: Expr, name: &Token) {
+        if let Some((depth, _)) = self
+            .scopes
             .iter()
             .rev()
             .enumerate()
             .find(|(_, scope)| scope.contains_key(name.lexeme()))
-            .map(|o| {
-                /* */
-                todo!("resolve by interpreter")
-            });
+        {
+            self.interpreter.resolve(expr, depth)
+        }
     }
 }
 
@@ -80,11 +80,13 @@ where
                 if resolved == &false {
                     return Err(ResolveError::read_during_initializer(&var.name));
                 }
-                self.resolve_local(e, &var.name);
+                // todo: move instead of clone
+                self.resolve_local(e.clone(), &var.name);
             }
             Expr::Assign(assign) => {
                 self.visit_expr(&assign.value)?;
-                self.resolve_local(e, &assign.name);
+                // todo: move instead of clone
+                self.resolve_local(e.clone(), &assign.name);
             }
             Expr::Logical(logical) => {
                 self.visit_expr(&logical.left)?;

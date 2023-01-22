@@ -1,4 +1,9 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::{
+    hash::{Hash, Hasher},
+    num::ParseFloatError,
+    ops::{Add, Deref, DerefMut, Div, Mul, Neg, Sub},
+    str::FromStr,
+};
 
 use crate::{
     callable::{Callable, LoxCallable},
@@ -7,7 +12,76 @@ use crate::{
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
-pub(crate) type Number = f64;
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub(crate) struct Number(f64);
+
+#[allow(clippy::derive_hash_xor_eq)]
+impl Hash for Number {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.to_bits().hash(state)
+    }
+}
+
+impl Add for Number {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Number(self.0 + rhs.0)
+    }
+}
+
+impl Sub for Number {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Number(self.0 - rhs.0)
+    }
+}
+
+impl Mul for Number {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Number(self.0 * rhs.0)
+    }
+}
+
+impl Div for Number {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        Number(self.0 / rhs.0)
+    }
+}
+
+impl Neg for Number {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Number(-self.0)
+    }
+}
+
+impl Deref for Number {
+    type Target = f64;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Number {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<f64> for Number {
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
+
+impl FromStr for Number {
+    type Err = ParseFloatError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<f64>().map(Number)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Object {
@@ -163,7 +237,7 @@ impl Div for Object {
     fn div(self, rhs: Self) -> Self::Output {
         let lhs = self.as_number().ok_or_else(ObjectError::division)?;
         let rhs = rhs.as_number().ok_or_else(ObjectError::division)?;
-        if rhs == 0.0 {
+        if rhs == Number(0.0) {
             Err(ObjectError::zero_division())
         } else {
             Ok(Object::Number(lhs / rhs))

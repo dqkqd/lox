@@ -12,6 +12,8 @@ pub(crate) enum Expr {
     Call(Call),
 }
 
+impl Eq for Expr {}
+
 impl Expr {
     pub fn walk_epxr<E, S>(&self, visitor: &mut impl Visitor<E, S>) -> E {
         visitor.visit_expr(self)

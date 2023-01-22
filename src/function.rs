@@ -1,8 +1,12 @@
 use std::time::SystemTime;
 
 use crate::{
-    callable::Callable, environment::EnvironmentTree, error::runtime_error::RuntimeError,
-    interpreter::Interpreter, object::Object, stmt::Function,
+    callable::Callable,
+    environment::EnvironmentTree,
+    error::runtime_error::RuntimeError,
+    interpreter::Interpreter,
+    object::{Number, Object},
+    stmt::Function,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -114,6 +118,6 @@ impl Callable for Clock {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
-        Ok(Object::Number(now.as_millis() as f64))
+        Ok(Object::Number(Number::from(now.as_millis() as f64)))
     }
 }
