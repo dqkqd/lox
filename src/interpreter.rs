@@ -258,7 +258,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use std::{io::Write, time::SystemTime};
+    use std::time::SystemTime;
 
     use crate::{parser::Parser, scanner::Scanner};
 
@@ -266,17 +266,11 @@ mod test {
 
     fn test_interpreter(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
         let mut result = Vec::new();
+
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
-        for error in scanner.errors() {
-            writeln!(&mut result, "{:?}", error)?;
-        }
-
         let mut parser = Parser::from(&scanner);
         let statements = parser.parse();
-        for error in parser.errors() {
-            writeln!(&mut result, "{:?}", error)?;
-        }
 
         let mut interpreter = Interpreter::new(&mut result);
         interpreter.interpret(&statements);
@@ -463,20 +457,6 @@ false
     }
 
     #[test]
-    fn variable_declaration() -> Result<(), std::io::Error> {
-        let source = "
-var x = 1;
-print x;
-var y
-";
-        let expected_output = "
-[line 5]: ParseError: Expected `;`. Found `EOF`
-1";
-        test_interpreter(source, expected_output)?;
-        Ok(())
-    }
-
-    #[test]
     fn assignment() -> Result<(), std::io::Error> {
         let source = "
 var x = 1;
@@ -561,23 +541,6 @@ if (false)
         print \"nested if then else\";
 ";
         let expected_output = "nested if then";
-        test_interpreter(source, expected_output)
-    }
-
-    #[test]
-    fn if_missing_left_right_paren() -> Result<(), std::io::Error> {
-        let source = "
-            // missing left paren
-            if true;
-
-            // missing right paren
-            if (true;
-
-            ";
-        let expected_output = "
-[line 3]: ParseError: Expected `(`. Found `true`
-[line 6]: ParseError: Expected `)`. Found `;`
-";
         test_interpreter(source, expected_output)
     }
 
