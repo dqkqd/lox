@@ -5,7 +5,6 @@ use crate::{
     environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     expr::Expr,
-    function::NativeFunction,
     object::Object,
     stmt::Stmt,
     token::{Token, TokenType},
@@ -17,7 +16,6 @@ where
     W: std::io::Write,
 {
     writer: W,
-    prelude: EnvironmentTree,
     environment: EnvironmentTree,
     errors: Vec<RuntimeError>,
     locals: HashMap<Expr, usize>,
@@ -33,22 +31,10 @@ where
     pub fn new(writer: W) -> Self {
         Self {
             writer,
-            prelude: EnvironmentTree::default(),
             environment: EnvironmentTree::default(),
             errors: Default::default(),
             locals: Default::default(),
         }
-        .with_prelude()
-    }
-
-    pub fn with_prelude(mut self) -> Self {
-        // define global environment
-        let clock = NativeFunction::clock();
-        self.prelude.define(
-            "clock",
-            Object::Callable(LoxCallable::native_function(clock)),
-        );
-        self
     }
 
     pub fn had_error(&self) -> bool {
@@ -72,13 +58,9 @@ where
     }
 
     pub fn lookup_variable(&self, _expr: &Expr, name: &Token) -> InterpreterResult<Object> {
-        match self.environment.get(name) {
-            Some(object) => Ok(object),
-            _ => self
-                .prelude
-                .get(name)
-                .ok_or_else(|| RuntimeError::undefined_variable(name)),
-        }
+        self.environment
+            .get(name)
+            .ok_or_else(|| RuntimeError::undefined_variable(name))
     }
 
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -104,12 +86,10 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
     fn default() -> Self {
         Self {
             writer: std::io::stdout().lock(),
-            prelude: EnvironmentTree::default(),
             environment: EnvironmentTree::default(),
             errors: Default::default(),
             locals: Default::default(),
         }
-        .with_prelude()
     }
 }
 
