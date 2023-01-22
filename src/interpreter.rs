@@ -260,7 +260,7 @@ mod test {
 
     use std::time::SystemTime;
 
-    use crate::{parser::Parser, scanner::Scanner};
+    use crate::{parser::Parser, resolver::Resolver, scanner::Scanner};
 
     use super::*;
 
@@ -269,10 +269,15 @@ mod test {
 
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
+
         let mut parser = Parser::from(&scanner);
         let statements = parser.parse();
 
         let mut interpreter = Interpreter::new(&mut result);
+
+        let mut resolver = Resolver::new(&mut interpreter);
+        resolver.resolve(&statements);
+
         interpreter.interpret(&statements);
         let error_string = interpreter
             .errors()
