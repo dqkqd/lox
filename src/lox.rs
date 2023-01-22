@@ -2,7 +2,10 @@ use std::{io::StdoutLock, process::exit};
 
 use anyhow::{Context, Result};
 
-use crate::{interpreter::Interpreter, parser::Parser, resolver::Resolver, scanner::Scanner};
+use crate::{
+    error::ErrorReporter, interpreter::Interpreter, parser::Parser, resolver::Resolver,
+    scanner::Scanner,
+};
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
@@ -71,9 +74,7 @@ where
         self.had_scan_error = scanner.had_error();
 
         if self.had_scan_error {
-            for error in scanner.errors() {
-                self.interpreter.write(&error.to_string())?
-            }
+            self.interpreter.write(&scanner.error_string())?;
             return Ok(());
         }
 
@@ -81,9 +82,7 @@ where
         let statements = parser.parse();
         self.had_parse_error = parser.had_error();
         if self.had_parse_error {
-            for error in parser.errors() {
-                self.interpreter.write(&error.to_string())?
-            }
+            self.interpreter.write(&parser.error_string())?;
             return Ok(());
         }
 
@@ -91,23 +90,14 @@ where
         resolver.resolve(&statements);
         self.had_resolve_error = resolver.had_error();
         if self.had_resolve_error {
-            let errors = resolver.errors().clone();
-            for error in errors {
-                // todo: write to output stream, fix later
-                println!("{:?}", error);
-            }
+            let error_string = resolver.error_string();
+            self.interpreter.write(&error_string)?;
             return Ok(());
         }
 
         self.interpreter.interpret(&statements);
         if self.interpreter.had_error() {
-            let error_string = self
-                .interpreter
-                .errors()
-                .iter()
-                .map(|err| err.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
+            let error_string = self.interpreter.error_string();
             self.interpreter.write(&error_string)?;
             return Ok(());
         }

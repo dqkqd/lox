@@ -3,7 +3,7 @@ use std::{iter::Peekable, vec::IntoIter};
 const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
-    error::parse_error::ParseError,
+    error::{parse_error::ParseError, ErrorReporter},
     expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
@@ -24,6 +24,12 @@ impl From<&Scanner> for Parser {
     }
 }
 
+impl ErrorReporter<ParseError> for Parser {
+    fn errors(&self) -> &[ParseError] {
+        &self.errors
+    }
+}
+
 impl Parser {
     #[allow(clippy::unnecessary_to_owned)]
     fn new(tokens: &[Token]) -> Self {
@@ -31,14 +37,6 @@ impl Parser {
             it: tokens.to_vec().into_iter().peekable(),
             errors: Vec::new(),
         }
-    }
-
-    pub fn had_error(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn errors(&self) -> &[ParseError] {
-        &self.errors
     }
 
     fn is_end(&self) -> bool {
@@ -521,17 +519,13 @@ mod test {
 
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
-        for error in scanner.errors() {
-            writeln!(&mut result, "{:?}", error)?;
-        }
+        writeln!(&mut result, "{}", scanner.error_string())?;
 
         let mut parser = Parser::from(&scanner);
         let mut ast_repr = AstRepr::default();
         let statements = parser.parse();
         writeln!(&mut result, "{}", ast_repr.repr(&statements))?;
-        for error in parser.errors() {
-            writeln!(&mut result, "{:?}", error)?;
-        }
+        writeln!(&mut result, "{}", parser.error_string())?;
 
         let result = String::from_utf8(result).unwrap();
         assert_eq!(result.trim(), expected_output.trim());

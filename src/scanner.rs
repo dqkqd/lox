@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::syntax_error::SyntaxError,
+    error::{syntax_error::SyntaxError, ErrorReporter},
     object::Number,
     token::{Token, TokenType},
 };
@@ -49,6 +49,12 @@ pub(crate) struct Scanner {
     errors: Vec<SyntaxError>,
 }
 
+impl ErrorReporter<SyntaxError> for Scanner {
+    fn errors(&self) -> &[SyntaxError] {
+        &self.errors
+    }
+}
+
 impl Scanner {
     pub fn new(source: &str) -> Self {
         Scanner {
@@ -63,14 +69,6 @@ impl Scanner {
 
     pub fn tokens(&self) -> &[Token] {
         &self.tokens
-    }
-
-    pub fn errors(&self) -> &[SyntaxError] {
-        &self.errors
-    }
-
-    pub fn had_error(&self) -> bool {
-        !self.errors.is_empty()
     }
 
     fn prev(&mut self) {
@@ -290,9 +288,7 @@ mod test {
             )?;
         }
 
-        for error in scanner.errors() {
-            writeln!(&mut result, "{:?}", error)?;
-        }
+        writeln!(&mut result, "{}", scanner.error_string())?;
 
         let result = String::from_utf8(result).unwrap();
         assert_eq!(result.trim(), expected_output.trim());

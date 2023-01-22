@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::StdoutLock};
 use crate::{
     callable::{Callable, LoxCallable},
     environment::EnvironmentTree,
-    error::runtime_error::RuntimeError,
+    error::{runtime_error::RuntimeError, ErrorReporter},
     expr::Expr,
     object::Object,
     stmt::Stmt,
@@ -23,6 +23,15 @@ where
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
 
+impl<W> ErrorReporter<RuntimeError> for Interpreter<W>
+where
+    W: std::io::Write,
+{
+    fn errors(&self) -> &[RuntimeError] {
+        &self.errors
+    }
+}
+
 #[allow(dead_code)]
 impl<W> Interpreter<W>
 where
@@ -35,14 +44,6 @@ where
             errors: Default::default(),
             locals: Default::default(),
         }
-    }
-
-    pub fn had_error(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn errors(&self) -> &[RuntimeError] {
-        &self.errors
     }
 
     fn expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
@@ -266,25 +267,23 @@ mod test {
 
     fn test_interpreter(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
         let mut result = Vec::new();
+        let mut interpreter = Interpreter::new(&mut result);
 
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
+        interpreter.write(&scanner.error_string())?;
 
         let mut parser = Parser::from(&scanner);
         let statements = parser.parse();
-
-        let mut interpreter = Interpreter::new(&mut result);
+        interpreter.write(&parser.error_string())?;
 
         let mut resolver = Resolver::new(&mut interpreter);
         resolver.resolve(&statements);
+        let error_string = resolver.error_string();
+        interpreter.write(&error_string)?;
 
         interpreter.interpret(&statements);
-        let error_string = interpreter
-            .errors()
-            .iter()
-            .map(|err| err.to_string())
-            .collect::<Vec<_>>()
-            .join("\n");
+        let error_string = interpreter.error_string();
         interpreter.write(&error_string)?;
 
         let result = String::from_utf8(result).unwrap();

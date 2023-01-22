@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::resolve_error::ResolveError, expr::Expr, interpreter::Interpreter, stmt::Stmt,
-    token::Token, visitor::Visitor,
+    error::{resolve_error::ResolveError, ErrorReporter},
+    expr::Expr,
+    interpreter::Interpreter,
+    stmt::Stmt,
+    token::Token,
+    visitor::Visitor,
 };
 
 pub(crate) struct Resolver<'a, W>
@@ -16,6 +20,15 @@ where
 
 type ResolveResult<T> = Result<T, ResolveError>;
 
+impl<'a, W> ErrorReporter<ResolveError> for Resolver<'a, W>
+where
+    W: std::io::Write,
+{
+    fn errors(&self) -> &[ResolveError] {
+        &self.errors
+    }
+}
+
 impl<'a, W> Resolver<'a, W>
 where
     W: std::io::Write,
@@ -26,14 +39,6 @@ where
             errors: Default::default(),
             scopes: Default::default(),
         }
-    }
-
-    pub fn had_error(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn errors(&self) -> &[ResolveError] {
-        &self.errors
     }
 
     fn begin_scope(&mut self) {
