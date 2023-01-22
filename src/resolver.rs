@@ -72,12 +72,12 @@ where
                 self.visit_expr(&group.expr)?;
             }
             Expr::Variable(var) => {
-                let resolved = self
+                if self
                     .scopes
                     .last()
                     .and_then(|scope| scope.get(var.name.lexeme()))
-                    .unwrap_or(&false);
-                if resolved == &false {
+                    == Some(&false)
+                {
                     return Err(ResolveError::read_during_initializer(&var.name));
                 }
                 // todo: move instead of clone
