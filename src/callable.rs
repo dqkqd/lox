@@ -19,7 +19,7 @@ pub(crate) trait Callable {
         W: std::io::Write;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum LoxCallable {
     LoxFunction(LoxFunction),
     NativeFunction(NativeFunction),

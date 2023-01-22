@@ -1,6 +1,6 @@
 use crate::object::Number;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -57,7 +57,7 @@ impl From<Token> for TokenType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Token {
     token_type: TokenType,
     lexeme: String,

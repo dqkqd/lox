@@ -1,6 +1,6 @@
 use crate::{expr::Expr, token::Token, visitor::Visitor};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum Stmt {
     Expression(Expr),
     Print(Expr),
@@ -35,7 +35,7 @@ pub(crate) struct Print {
     pub expression: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Var {
     pub identifier: Token,
     pub expression: Expr,
@@ -50,7 +50,7 @@ impl Var {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Hash)]
 pub(crate) struct Block {
     pub statements: Vec<Stmt>,
 }
@@ -61,7 +61,7 @@ impl Block {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct If {
     pub condition: Expr,
     pub then_branch: Box<Stmt>,
@@ -78,7 +78,7 @@ impl If {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct While {
     pub condition: Expr,
     pub body: Box<Stmt>,
@@ -93,7 +93,7 @@ impl While {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Function {
     pub name: Token,
     pub params: Vec<Token>,
@@ -110,7 +110,7 @@ impl Function {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Return {
     pub keyword: Token,
     pub value: Expr,

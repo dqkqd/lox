@@ -83,7 +83,7 @@ impl FromStr for Number {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum Object {
     Null,
     Number(Number),

@@ -1,4 +1,7 @@
-use std::time::SystemTime;
+use std::{
+    hash::{Hash, Hasher},
+    time::SystemTime,
+};
 
 use crate::{
     callable::Callable,
@@ -21,6 +24,13 @@ impl LoxFunction {
             declaration,
             closure,
         }
+    }
+}
+
+// cannot hash environment
+impl Hash for LoxFunction {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.declaration.hash(state)
     }
 }
 
@@ -60,7 +70,7 @@ impl Callable for LoxFunction {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum NativeFunction {
     Clock(Clock),
 }
@@ -99,7 +109,7 @@ impl Callable for NativeFunction {
 }
 
 // native clock function
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Hash)]
 pub(crate) struct Clock;
 
 impl Callable for Clock {

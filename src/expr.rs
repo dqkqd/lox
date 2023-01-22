@@ -1,6 +1,6 @@
 use crate::{object::Object, token::Token, visitor::Visitor};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum Expr {
     Binary(Binary),
     Unary(Unary),
@@ -20,7 +20,7 @@ impl Expr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Binary {
     pub left: Box<Expr>,
     pub operator: Token,
@@ -37,7 +37,7 @@ impl Binary {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Unary {
     pub operator: Token,
     pub right: Box<Expr>,
@@ -52,7 +52,7 @@ impl Unary {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Grouping {
     pub expr: Box<Expr>,
 }
@@ -65,7 +65,7 @@ impl Grouping {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Variable {
     pub name: Token,
 }
@@ -76,7 +76,7 @@ impl Variable {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Assign {
     pub name: Token,
     pub value: Box<Expr>,
@@ -91,7 +91,7 @@ impl Assign {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Call {
     pub callee: Box<Expr>,
     pub paren: Token,

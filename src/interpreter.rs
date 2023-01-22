@@ -1,4 +1,4 @@
-use std::io::StdoutLock;
+use std::{collections::HashMap, io::StdoutLock};
 
 use crate::{
     callable::{Callable, LoxCallable},
@@ -19,6 +19,7 @@ where
     writer: W,
     environment: EnvironmentTree,
     errors: Vec<RuntimeError>,
+    locals: HashMap<Expr, usize>,
 }
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
@@ -33,6 +34,7 @@ where
             writer,
             environment: EnvironmentTree::default(),
             errors: Default::default(),
+            locals: Default::default(),
         }
         .with_predefined_native_function()
     }
@@ -65,6 +67,10 @@ where
         s.walk_stmt(self)
     }
 
+    pub fn resolve(&mut self, expr: Expr, depth: usize) {
+        self.locals.insert(expr, depth);
+    }
+
     pub fn interpret(&mut self, statements: &[Stmt]) {
         self.errors = statements
             .iter()
@@ -90,6 +96,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
             writer: std::io::stdout().lock(),
             environment: EnvironmentTree::default(),
             errors: Default::default(),
+            locals: Default::default(),
         }
         .with_predefined_native_function()
     }
