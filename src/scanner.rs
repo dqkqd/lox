@@ -103,6 +103,10 @@ impl Scanner {
         }
     }
 
+    fn new_line(&mut self) {
+        self.line += 1;
+    }
+
     fn read_while<F>(&mut self, f: F) -> String
     where
         F: Fn(char) -> bool,
@@ -114,7 +118,7 @@ impl Scanner {
             }
             self.next().map(|c| {
                 if c == '\n' {
-                    self.line += 1;
+                    self.new_line();
                 }
                 string.push(c);
             });
@@ -235,7 +239,7 @@ impl Scanner {
             // whitespace
             '\n' | ' ' | '\r' | '\t' => {
                 if c == '\n' {
-                    self.line += 1;
+                    self.new_line();
                 }
                 return None;
             }
