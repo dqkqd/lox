@@ -99,7 +99,7 @@ impl fmt::Display for RuntimeError {
         write!(
             f,
             "[line {}]: RuntimeError: {}",
-            self.line,
+            self.line + 1,
             self.error_type.msg()
         )
     }

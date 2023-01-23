@@ -89,7 +89,7 @@ impl Token {
     }
 
     pub fn column(&self) -> usize {
-        self.start_pos.start_column
+        self.start_pos.column
     }
 }
 

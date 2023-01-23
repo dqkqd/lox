@@ -46,7 +46,7 @@ impl fmt::Display for SyntaxError {
         write!(
             f,
             "[line {}]: SyntaxError: {}",
-            self.line,
+            self.line + 1,
             self.error_type.msg()
         )
     }

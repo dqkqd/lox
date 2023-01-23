@@ -57,7 +57,7 @@ impl fmt::Display for ResolveError {
         write!(
             f,
             "[line {}]: ResolveError: {}",
-            self.line,
+            self.line + 1,
             self.error_type.msg()
         )
     }

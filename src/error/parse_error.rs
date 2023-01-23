@@ -85,7 +85,7 @@ impl fmt::Display for ParseError {
         write!(
             f,
             "[line {}]: ParseError: {}",
-            self.line,
+            self.line + 1,
             self.error_type.msg()
         )
     }

@@ -44,10 +44,10 @@ type ScanResult<T> = Result<T, SyntaxError>;
 #[derive(Debug, Clone, PartialEq, Hash, Copy)]
 pub(crate) struct CharPos {
     pub ch: char,
-    index: usize,
+    pub index: usize,
     pub line: usize,
-    pub start_column: usize,
-    width: usize,
+    pub column: usize,
+    pub width: usize,
 }
 
 #[derive(Debug)]
@@ -59,8 +59,8 @@ impl SourcePos {
     fn new(source: &str) -> Self {
         let mut positions = Vec::with_capacity(source.len());
 
-        let mut line = 1;
-        let mut start_column = 1;
+        let mut line = 0;
+        let mut column = 0;
 
         for (index, ch) in source.chars().enumerate() {
             let width = UnicodeWidthChar::width(ch).unwrap_or(0);
@@ -69,15 +69,15 @@ impl SourcePos {
                 ch,
                 index,
                 line,
-                start_column,
+                column,
                 width,
             };
 
             if ch == '\n' {
                 line += 1;
-                start_column = 1;
+                column = 0;
             } else {
-                start_column += width;
+                column += width;
             }
 
             positions.push(char_pos);
@@ -370,7 +370,7 @@ mod test {
             writeln!(
                 &mut result,
                 "line: {}, token: {}",
-                token.line(),
+                token.line() + 1,
                 token.lexeme()
             )?;
         }
