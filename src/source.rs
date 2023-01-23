@@ -1,11 +1,10 @@
 use unicode_width::UnicodeWidthChar;
 
-#[derive(Debug, Clone, PartialEq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Hash, Copy, Default)]
 pub(crate) struct CharPos {
     pub ch: char,
     pub index: usize,
     pub line: usize,
-    pub column: usize,
     pub width: usize,
 }
 
@@ -19,7 +18,6 @@ impl SourcePos {
         let mut positions = Vec::with_capacity(source.len());
 
         let mut line = 0;
-        let mut column = 0;
 
         for (index, ch) in source.chars().enumerate() {
             let width = UnicodeWidthChar::width(ch).unwrap_or(0);
@@ -28,15 +26,11 @@ impl SourcePos {
                 ch,
                 index,
                 line,
-                column,
                 width,
             };
 
             if ch == '\n' {
                 line += 1;
-                column = 0;
-            } else {
-                column += width;
             }
 
             positions.push(char_pos);

@@ -87,10 +87,6 @@ impl Token {
     pub fn line(&self) -> usize {
         self.start_pos.line
     }
-
-    pub fn column(&self) -> usize {
-        self.start_pos.column
-    }
 }
 
 impl ToString for TokenType {
