@@ -1,4 +1,4 @@
-use crate::{object::Number, scanner::CharPos};
+use crate::{object::Number, source::CharPos};
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum TokenType {

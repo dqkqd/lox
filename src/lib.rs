@@ -30,4 +30,6 @@ pub(crate) mod function;
 
 pub(crate) mod resolver;
 
+pub(crate) mod source;
+
 pub use cli::exec;

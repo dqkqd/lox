@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::scanner::CharPos;
+use crate::source::CharPos;
 
 #[derive(PartialEq)]
 enum SyntaxErrorType {

@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use unicode_width::UnicodeWidthChar;
-
 use crate::{
     error::{syntax_error::SyntaxError, ErrorReporter},
     object::Number,
+    source::{CharPos, SourcePos},
     token::{Token, TokenType},
 };
 
@@ -40,52 +39,6 @@ pub(crate) fn generate_static_reserved_keywords() -> HashMap<String, TokenType> 
 }
 
 type ScanResult<T> = Result<T, SyntaxError>;
-
-#[derive(Debug, Clone, PartialEq, Hash, Copy)]
-pub(crate) struct CharPos {
-    pub ch: char,
-    pub index: usize,
-    pub line: usize,
-    pub column: usize,
-    pub width: usize,
-}
-
-#[derive(Debug)]
-struct SourcePos {
-    positions: Vec<CharPos>,
-}
-
-impl SourcePos {
-    fn new(source: &str) -> Self {
-        let mut positions = Vec::with_capacity(source.len());
-
-        let mut line = 0;
-        let mut column = 0;
-
-        for (index, ch) in source.chars().enumerate() {
-            let width = UnicodeWidthChar::width(ch).unwrap_or(0);
-
-            let char_pos = CharPos {
-                ch,
-                index,
-                line,
-                column,
-                width,
-            };
-
-            if ch == '\n' {
-                line += 1;
-                column = 0;
-            } else {
-                column += width;
-            }
-
-            positions.push(char_pos);
-        }
-
-        Self { positions }
-    }
-}
 
 #[derive(Debug)]
 pub(crate) struct Scanner {
@@ -130,7 +83,7 @@ impl Scanner {
 
     fn prev_pos(&self) -> Option<CharPos> {
         if self.current > 0 {
-            Some(self.source_pos.positions[self.current - 1])
+            self.source_pos.get(self.current - 1)
         } else {
             None
         }
