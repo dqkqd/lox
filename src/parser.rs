@@ -509,7 +509,6 @@ mod test {
     use super::*;
 
     fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
-
         let source_pos = SourcePos::new(source);
         let reporter = Reporter::new(&source_pos);
         let mut result = Vec::new();

@@ -205,10 +205,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use crate::{
-        ast_repr::AstRepr, error::reporter::Reporter, parser::Parser, scanner::Scanner,
-        source::SourcePos,
-    };
+    use crate::{error::reporter::Reporter, parser::Parser, scanner::Scanner, source::SourcePos};
 
     use super::*;
 
