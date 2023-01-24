@@ -509,19 +509,19 @@ mod test {
     use super::*;
 
     fn test_parser(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+
+        let source_pos = SourcePos::new(source);
+        let reporter = Reporter::new(&source_pos);
         let mut result = Vec::new();
 
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
-        writeln!(&mut result, "{}", scanner.error_string())?;
+        writeln!(&mut result, "{}", scanner.error_msg(&reporter))?;
 
         let mut parser = Parser::from(&scanner);
         let mut ast_repr = AstRepr::default();
         let statements = parser.parse();
         writeln!(&mut result, "{}", ast_repr.repr(&statements))?;
-
-        let source_pos = SourcePos::new(source);
-        let reporter = Reporter::new(&source_pos);
 
         writeln!(&mut result, "{}", parser.error_msg(&reporter))?;
 

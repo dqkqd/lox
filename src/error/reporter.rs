@@ -48,14 +48,6 @@ where
         !self.errors().is_empty()
     }
 
-    fn error_string(&self) -> String {
-        self.errors()
-            .iter()
-            .map(|err| err.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
     fn error_msg(&self, reporter: &Reporter) -> String {
         self.errors()
             .iter()
