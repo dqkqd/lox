@@ -39,7 +39,7 @@ impl Visitor<String, String> for AstRepr {
             Expr::Literal(object) => match object {
                 Object::Null => "nil".to_string(),
                 Object::Number(n) => (*n).to_string(),
-                Object::String(s) => format!("\"{}\"", s),
+                Object::String(s) => format!("\"{s}\""),
                 Object::Bool(b) => b.to_string(),
                 Object::Callable(fun) => format!("<fn {}>", fun.name()),
             },
@@ -72,7 +72,7 @@ impl Visitor<String, String> for AstRepr {
                     .map(|arg| self.visit_expr(arg))
                     .collect::<Vec<_>>()
                     .join(",");
-                format!("Expr::Call(callee={} arguments={})", callee, arguments)
+                format!("Expr::Call(callee={callee} arguments={arguments})")
             }
         }
     }
@@ -81,16 +81,16 @@ impl Visitor<String, String> for AstRepr {
         match s {
             Stmt::Expression(e) => {
                 let expr = self.visit_expr(e);
-                format!("Stmt::Expr({})", expr)
+                format!("Stmt::Expr({expr})")
             }
             Stmt::Print(e) => {
                 let value = self.visit_expr(e);
-                format!("Stmt::Print({})", value)
+                format!("Stmt::Print({value})")
             }
             Stmt::Var(var) => {
                 let name = var.identifier.lexeme();
                 let value = self.visit_expr(&var.expression);
-                format!("Stmt::Var({} = {})", name, value)
+                format!("Stmt::Var({name} = {value})")
             }
             Stmt::Block(block) => {
                 let mut result = String::new();
@@ -114,17 +114,16 @@ impl Visitor<String, String> for AstRepr {
                     .as_ref()
                     .map(|s| self.visit_stmt(s));
                 match else_branch {
-                    Some(else_branch) => format!(
-                        "Stmt::If(cond={} then={} else={})",
-                        condition, then_branch, else_branch
-                    ),
-                    None => format!("Stmt::If(cond={} then={})", condition, then_branch),
+                    Some(else_branch) => {
+                        format!("Stmt::If(cond={condition} then={then_branch} else={else_branch})")
+                    }
+                    None => format!("Stmt::If(cond={condition} then={then_branch})"),
                 }
             }
             Stmt::While(while_statement) => {
                 let condition = self.visit_expr(&while_statement.condition);
                 let body = self.visit_stmt(&while_statement.body);
-                format!("Stmt::While(cond={}, body={})", condition, body)
+                format!("Stmt::While(cond={condition}, body={body})")
             }
             Stmt::Function(fun) => {
                 let name = fun.name.lexeme();
@@ -135,14 +134,11 @@ impl Visitor<String, String> for AstRepr {
                     .collect::<Vec<_>>()
                     .join(",");
                 let body = self.visit_stmt(&fun.body);
-                format!(
-                    "Stmt::Function(name={} params={} body={})",
-                    name, params, body
-                )
+                format!("Stmt::Function(name={name} params={params} body={body})")
             }
             Stmt::Return(return_statement) => {
                 let value = self.visit_expr(&return_statement.value);
-                format!("Stmt::Return({})", value)
+                format!("Stmt::Return({value})")
             }
         }
     }

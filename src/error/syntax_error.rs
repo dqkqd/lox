@@ -15,7 +15,7 @@ impl SyntaxErrorType {
         match self {
             SyntaxErrorType::UnterminatedString => "Unterminated string".to_string(),
             SyntaxErrorType::UnexpectedCharacter(c) => {
-                format!("Unexpected character `{}`", c)
+                format!("Unexpected character `{c}`")
             }
         }
     }

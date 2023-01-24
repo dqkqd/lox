@@ -85,7 +85,7 @@ where
     }
 
     pub fn write(&mut self, s: &str) -> Result<(), std::io::Error> {
-        writeln!(self.writer, "{}", s)
+        writeln!(self.writer, "{s}")
     }
 }
 
@@ -161,7 +161,7 @@ where
             Expr::Assign(assign) => {
                 let name = &assign.name;
                 let value = self.visit_expr(&assign.value)?;
-                let result = match self.locals.get(&e) {
+                let result = match self.locals.get(e) {
                     Some(depth) => self.environment.assign_at(name, value, *depth),
                     None => self.environment.assign_global(name, value),
                 };
@@ -275,7 +275,7 @@ mod test {
     use super::*;
 
     fn test_interpreter(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
-        let source_pos = SourcePos::new(&source);
+        let source_pos = SourcePos::new(source);
         let reporter = Reporter::new(&source_pos);
 
         let mut result = Vec::new();

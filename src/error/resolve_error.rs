@@ -15,12 +15,14 @@ impl ResolveErrorType {
     fn msg(&self) -> String {
         match self {
             ResolveErrorType::ReadDuringInitializer(name) => {
-                format!("Couldn't read `{}` in its own initializer", name)
+                format!("Couldn't read `{name}` in its own initializer")
             }
             ResolveErrorType::VarAlreadyExistInScope(name) => {
-                format!("Already a variable `{}` in this scope.", name)
+                format!("Already a variable `{name}` in this scope.")
             }
-            ResolveErrorType::ReturnFromTopLevel => format!("Could not return from top level code"),
+            ResolveErrorType::ReturnFromTopLevel => {
+                "Could not return from top level code".to_string()
+            }
         }
     }
 }

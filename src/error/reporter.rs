@@ -136,7 +136,7 @@ impl<'a> Reporter<'a> {
         let end_pos = error.end_pos();
 
         let mut result = String::new();
-        result.push_str(&format!("{}\n", error.to_string()));
+        result.push_str(&format!("{error}\n"));
 
         if start_pos.line == end_pos.line {
             // handle one line

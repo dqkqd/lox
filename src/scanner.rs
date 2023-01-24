@@ -126,12 +126,13 @@ impl Scanner {
             if !f(c) {
                 break;
             }
-            self.next().map(|c| {
+
+            if let Some(c) = self.next() {
                 if c == '\n' {
                     self.new_line();
                 }
                 string.push(c);
-            });
+            };
         }
         string
     }

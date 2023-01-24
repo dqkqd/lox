@@ -13,8 +13,8 @@ use crate::{
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut lox = Lox::default();
-    let source = std::fs::read_to_string(path)
-        .with_context(|| format!("Could not read file `{:?}`", path))?;
+    let source =
+        std::fs::read_to_string(path).with_context(|| format!("Could not read file `{path:?}`"))?;
     lox.run(&source)?;
     if lox.had_scan_error || lox.had_parse_error || lox.had_resolve_error {
         exit(65);
@@ -33,7 +33,7 @@ pub fn run_prompt(
     const WELCOME_MESSAGES: &str = "Welcome to Lox prompt";
     const PROMPT: &str = ">>>";
 
-    write!(writer, "{}\n{} ", WELCOME_MESSAGES, PROMPT)?;
+    write!(writer, "{WELCOME_MESSAGES}\n{PROMPT} ")?;
     writer.flush()?;
 
     for line in reader.lines() {
@@ -42,7 +42,7 @@ pub fn run_prompt(
             lox.run(&line)?;
             lox.reset_error();
         }
-        write!(writer, "{} ", PROMPT)?;
+        write!(writer, "{PROMPT} ")?;
         writer.flush()?;
     }
 

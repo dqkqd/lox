@@ -19,12 +19,12 @@ impl ParseErrorType {
     fn msg(&self) -> String {
         match self {
             ParseErrorType::UnexpectedToken(found, expected) => {
-                format!("Expected `{}`. Found `{}`", expected, found)
+                format!("Expected `{expected}`. Found `{found}`")
             }
             ParseErrorType::ExpectedExpression => "Expected expression".to_string(),
             ParseErrorType::InvalidAssignment => "Inavalid assignment target.".to_string(),
             ParseErrorType::MaximumArguments(argc) => {
-                format!("Could not have more than {} arguments", argc)
+                format!("Could not have more than {argc} arguments")
             }
         }
     }

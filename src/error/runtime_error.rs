@@ -18,13 +18,13 @@ impl RuntimeErrorType {
     fn msg(&self) -> String {
         match self {
             RuntimeErrorType::ObjectError(e) => e.to_string(),
-            RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{}`", name),
+            RuntimeErrorType::UndefinedVariable(name) => format!("Undefined variable `{name}`"),
             RuntimeErrorType::WriteError(err) => err.to_string(),
             RuntimeErrorType::NumberArgumentsMismatch(paramc, argc) => {
-                format!("Expected {} arguments. Found {} arguments", paramc, argc)
+                format!("Expected {paramc} arguments. Found {argc} arguments")
             }
             RuntimeErrorType::ReturnValue(_) => unreachable!("this should not be called as error"),
-            RuntimeErrorType::ObjectNotCallable(name) => format!("`{}` is not a function", name),
+            RuntimeErrorType::ObjectNotCallable(name) => format!("`{name}` is not a function"),
         }
     }
 }

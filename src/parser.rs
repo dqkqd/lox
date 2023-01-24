@@ -30,6 +30,7 @@ impl ErrorReporter<ParseError> for Parser {
     }
 }
 
+#[allow(clippy::result_large_err)]
 impl Parser {
     #[allow(clippy::unnecessary_to_owned)]
     fn new(tokens: &[Token]) -> Self {
@@ -1090,7 +1091,7 @@ fun f(){ print x;
             params.push("x")
         }
         let params = params.join(",");
-        let source = format!("fun hello({}) {{}}", params);
+        let source = format!("fun hello({params}) {{}}");
 
         let mut indicated_error = vec![' '; source.len() - 4]; // `) {}` remove offset for braces
         indicated_error.push('^');
@@ -1099,8 +1100,7 @@ fun f(){ print x;
         let expected_output = format!(
             "
 [line 1]: ParseError: Could not have more than 255 arguments
-{}\n{}",
-            source, indicated_error
+{source}\n{indicated_error}"
         );
 
         test_parser(&source, &expected_output)
