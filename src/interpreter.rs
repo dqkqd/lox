@@ -200,6 +200,28 @@ where
                     _ => Err(RuntimeError::object_not_callable(&call.paren, &callee)),
                 }
             }
+            Expr::Get(get) => {
+                let object = self.visit_expr(&get.object)?;
+                match object {
+                    Object::LoxInstance(instance) => match instance.get(&get.name) {
+                        Some(result) => Ok(result.clone()),
+                        None => todo!("raise error instance not found"),
+                    },
+                    _ => todo!("Raise error only instance have field"),
+                }
+            }
+
+            Expr::Set(set) => {
+                let object = self.visit_expr(&set.object)?;
+                match object {
+                    Object::LoxInstance(mut instance) => {
+                        let value = self.visit_expr(&set.value)?;
+                        instance.set(&set.name, value.clone());
+                        Ok(value)
+                    }
+                    _ => todo!("raise error instance have field"),
+                }
+            }
         }
     }
 

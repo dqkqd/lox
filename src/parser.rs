@@ -4,7 +4,7 @@ const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
     error::{parse_error::ParseError, reporter::ErrorReporter},
-    expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
+    expr::{Assign, Binary, Call, Expr, Get, Grouping, Set, Unary, Variable},
     object::Object,
     scanner::Scanner,
     stmt::{Block, Class, Function, If, Return, Stmt, Var, While},
@@ -341,7 +341,10 @@ impl Parser {
             if let Expr::Variable(var) = expr {
                 Ok(Expr::Assign(Assign::new(var.name, value)))
             } else {
-                Err(ParseError::invalid_assignment(&equal).without_panic())
+                match expr {
+                    Expr::Get(get) => Ok(Expr::Set(Set::new(*get.object, get.name, value))),
+                    _ => Err(ParseError::invalid_assignment(&equal).without_panic()),
+                }
             }
         } else {
             Ok(expr)
@@ -429,6 +432,9 @@ impl Parser {
         loop {
             if self.consume(TokenType::LeftParen).is_ok() {
                 expr = self.finish_call(expr)?;
+            } else if self.consume(TokenType::Dot).is_ok() {
+                let name = self.consume_identifier("class property")?;
+                expr = Expr::Get(Get::new(expr, name));
             } else {
                 break;
             }

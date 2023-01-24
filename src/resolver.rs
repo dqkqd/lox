@@ -136,6 +136,11 @@ where
                     self.visit_expr(arg)?;
                 }
             }
+            Expr::Get(get) => self.visit_expr(&get.object)?,
+            Expr::Set(set) => {
+                self.visit_expr(&set.value)?;
+                self.visit_expr(&set.object)?;
+            }
         }
         Ok(())
     }

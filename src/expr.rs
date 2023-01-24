@@ -10,6 +10,8 @@ pub(crate) enum Expr {
     Assign(Assign),
     Logical(Binary),
     Call(Call),
+    Get(Get),
+    Set(Set),
 }
 
 impl Eq for Expr {}
@@ -104,6 +106,38 @@ impl Call {
             callee: Box::new(callee),
             paren,
             arguments,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub(crate) struct Get {
+    pub object: Box<Expr>,
+    pub name: Token,
+}
+
+impl Get {
+    pub fn new(object: Expr, name: Token) -> Self {
+        Self {
+            object: Box::new(object),
+            name,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub(crate) struct Set {
+    pub object: Box<Expr>,
+    pub name: Token,
+    pub value: Box<Expr>,
+}
+
+impl Set {
+    pub fn new(object: Expr, name: Token, value: Expr) -> Self {
+        Self {
+            object: Box::new(object),
+            name,
+            value: Box::new(value),
         }
     }
 }

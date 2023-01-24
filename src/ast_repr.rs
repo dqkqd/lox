@@ -75,6 +75,12 @@ impl Visitor<String, String> for AstRepr {
                     .join(",");
                 format!("Expr::Call(callee={callee} arguments={arguments})")
             }
+            Expr::Get(get) => {
+                todo!()
+            }
+            Expr::Set(set) => {
+                todo!()
+            }
         }
     }
 
