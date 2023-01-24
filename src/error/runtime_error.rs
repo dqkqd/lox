@@ -1,8 +1,8 @@
 use std::fmt;
 
-use crate::{object::Object, token::Token, source::CharPos};
+use crate::{object::Object, source::CharPos, token::Token};
 
-use super::object_error::ObjectError;
+use super::{object_error::ObjectError, reporter::impl_error_pos};
 
 #[derive(PartialEq)]
 pub(crate) enum RuntimeErrorType {
@@ -35,6 +35,8 @@ pub(crate) struct RuntimeError {
     end_pos: CharPos,
     error_type: RuntimeErrorType,
 }
+
+impl_error_pos!(RuntimeError);
 
 impl RuntimeError {
     pub fn undefined_variable(token: &Token) -> Self {
