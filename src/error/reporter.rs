@@ -118,11 +118,29 @@ impl<'a> Reporter<'a> {
         let start_pos = error.start_pos();
         let end_pos = error.end_pos();
 
-        // handle one line
         if start_pos.line == end_pos.line {
+            // handle one line
             self.error_in_middle(start_pos.line, start_pos.index, end_pos.index)
         } else {
-            todo!()
+            // handle multiple line
+            let mut result = String::new();
+
+            // first line
+            result.push_str(& self.error_to_end(start_pos.line, start_pos.index));
+
+            // middle lines
+            // end_pos.line - 1 will never be overflow since end_pos.line > start_pos.line >= 0 
+            for line in start_pos.line + 1 .. end_pos.line - 1 {
+                result.push_str(&self.error_to_end(line, 0));
+            }
+
+            // last line
+            result.push_str(&self.error_from_start(end_pos.line, end_pos.index));
+
+            todo!("Add test for this case");
+
+            result
+
         }
 
     }
@@ -170,5 +188,4 @@ mod test {
 "#;
         test_scanner(source, expected_output)
     }
-
 }
