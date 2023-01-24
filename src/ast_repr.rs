@@ -76,10 +76,15 @@ impl Visitor<String, String> for AstRepr {
                 format!("Expr::Call(callee={callee} arguments={arguments})")
             }
             Expr::Get(get) => {
-                todo!()
+                let object = self.visit_expr(&get.object);
+                let name = get.name.lexeme();
+                format!("Expr::Get(object={object}, name={name})")
             }
             Expr::Set(set) => {
-                todo!()
+                let object = self.visit_expr(&set.object);
+                let name = set.name.lexeme();
+                let value = self.visit_expr(&set.value);
+                format!("Expr::Set(object={object}, name={name}, value={value})")
             }
         }
     }

@@ -1264,4 +1264,30 @@ class Breakfast {
 
         test_parser(source, expected_output)
     }
+
+    #[test]
+    fn expr_get() -> Result<(), std::io::Error> {
+        let source = r#"
+x.y;
+"#;
+
+        let expected_output = r#"
+Stmt::Expr(Expr::Get(object=Expr::Variable(x), name=y))
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn expr_set() -> Result<(), std::io::Error> {
+        let source = r#"
+x.y = 1;
+"#;
+
+        let expected_output = r#"
+Stmt::Expr(Expr::Set(object=Expr::Variable(x), name=y, value=1))
+"#;
+
+        test_parser(source, expected_output)
+    }
 }
