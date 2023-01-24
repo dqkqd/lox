@@ -46,9 +46,7 @@ impl SyntaxError {
             error_type: SyntaxErrorType::UnexpectedCharacter(pos.ch),
         }
     }
-
 }
-
 
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

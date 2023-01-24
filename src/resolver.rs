@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::{resolve_error::ResolveError, ErrorReporter, reporter::TestErrorReporter},
+    error::{reporter::TestErrorReporter, resolve_error::ResolveError, ErrorReporter},
     expr::Expr,
     interpreter::Interpreter,
     stmt::Stmt,

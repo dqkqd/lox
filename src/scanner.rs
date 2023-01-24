@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::{syntax_error::SyntaxError, reporter::TestErrorReporter},
+    error::{reporter::TestErrorReporter, syntax_error::SyntaxError},
     object::Number,
     source::{CharPos, SourcePos},
     token::{Token, TokenType},

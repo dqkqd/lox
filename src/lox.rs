@@ -3,9 +3,8 @@ use std::{io::StdoutLock, process::exit};
 use anyhow::{Context, Result};
 
 use crate::{
-    error::ErrorReporter, interpreter::Interpreter, parser::Parser, resolver::Resolver,
-    error::reporter::TestErrorReporter,
-    scanner::Scanner,
+    error::reporter::TestErrorReporter, error::ErrorReporter, interpreter::Interpreter,
+    parser::Parser, resolver::Resolver, scanner::Scanner,
 };
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {

@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::StdoutLock};
 use crate::{
     callable::{Callable, LoxCallable},
     environment::EnvironmentTree,
-    error::{runtime_error::RuntimeError, ErrorReporter, reporter::TestErrorReporter},
+    error::{reporter::TestErrorReporter, runtime_error::RuntimeError, ErrorReporter},
     expr::Expr,
     object::Object,
     stmt::Stmt,
