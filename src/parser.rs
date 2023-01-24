@@ -922,6 +922,7 @@ for (
         test_parser(source, expected_output)
     }
 
+    #[test]
     fn for_statement_without_right_paren_but_already_parsed_init_cond_inc(
     ) -> Result<(), std::io::Error> {
         let source = r#"
@@ -930,7 +931,7 @@ for (;;
 "#;
 
         let expected_output = r#"
-[line 3]: ParseError: Expected expression
+[line 3]: ParseError: Expected `)`. Found `EOF`
 for (;;
        ^
 "#;

@@ -84,10 +84,6 @@ impl Token {
         self.lexeme.as_ref()
     }
 
-    pub fn line(&self) -> usize {
-        self.start_pos.line
-    }
-
     pub fn start_pos(&self) -> CharPos {
         self.start_pos
     }

@@ -325,7 +325,7 @@ mod test {
             writeln!(
                 &mut result,
                 "line: {}, token: {}",
-                token.line() + 1,
+                token.start_pos().line + 1,
                 token.lexeme()
             )?;
         }
