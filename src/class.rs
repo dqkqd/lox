@@ -47,6 +47,7 @@ pub(crate) struct LoxInstance {
     fields: HashMap<String, Object>,
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for LoxInstance {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // @todo! should we hash fields as well?
