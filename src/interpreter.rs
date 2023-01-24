@@ -809,4 +809,20 @@ print DevonshireCream;
 
         test_interpreter(source, expected_output)
     }
+
+    #[test]
+    fn class_instance_declaration() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello {}
+var instance = Hello();
+print instance;
+"#;
+
+        let expected_output = r#"
+<Hello instance>
+"#;
+    
+        test_interpreter(source, expected_output)
+
+    }
 }
