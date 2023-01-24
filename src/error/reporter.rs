@@ -4,6 +4,8 @@ const ERROR_MARK: char = '^';
 const NORMAL_MARK: char = ' ';
 
 fn string_equal_width(ch: char, width: usize) -> String {
+    // endline character has width = 0, but we still need to indicate there is error
+    let width = std::cmp::max(1, width);
     vec![ch; width].into_iter().collect::<String>()
 }
 
@@ -166,51 +168,5 @@ impl<'a> Reporter<'a> {
         }
 
         result
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{error::ErrorReporter, scanner::Scanner};
-
-    use super::*;
-
-    use std::io::Write;
-
-    fn test_scanner(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
-        let mut result = Vec::new();
-        let mut scanner = Scanner::new(source);
-
-        scanner.scan_tokens();
-
-        let source_pos = SourcePos::new(source);
-        let reporter = Reporter::new(&source_pos);
-
-        let errors = scanner
-            .errors()
-            .iter()
-            .map(|err| reporter.report(err))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        writeln!(&mut result, "{}", errors)?;
-
-        let result = String::from_utf8(result).unwrap();
-        assert_eq!(result.trim(), expected_output.trim());
-        Ok(())
-    }
-
-    #[test]
-    fn single_error_line_report() -> Result<(), std::io::Error> {
-        let source = "!@#";
-        let expected_output = r#"
-[line 1]: SyntaxError: Unexpected character `@`
-!@#
- ^
-[line 1]: SyntaxError: Unexpected character `#`
-!@#
-  ^
-"#;
-        test_scanner(source, expected_output)
     }
 }

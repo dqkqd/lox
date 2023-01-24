@@ -311,6 +311,8 @@ mod test {
 
     use super::*;
 
+    use crate::error::reporter::Reporter;
+
     use std::io::Write;
 
     fn test_scanner(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
@@ -328,7 +330,9 @@ mod test {
             )?;
         }
 
-        writeln!(&mut result, "{}", scanner.error_string())?;
+        let source_pos = SourcePos::new(source);
+        let reporter = Reporter::new(&source_pos);
+        writeln!(&mut result, "{}", scanner.error_msg(&reporter))?;
 
         let result = String::from_utf8(result).unwrap();
         assert_eq!(result.trim(), expected_output.trim());
@@ -398,11 +402,13 @@ line: 3, token: EOF";
 
     #[test]
     fn scan_string_with_error() -> Result<(), std::io::Error> {
-        let source = "\"unterminated string";
-        let expected_output = "
+        let source = r#""unterminated string"#;
+        let expected_output = r#"
 line: 1, token: EOF
 [line 1]: SyntaxError: Unterminated string
-        ";
+"unterminated string
+                   ^
+"#;
         test_scanner(source, expected_output)
     }
 
@@ -481,12 +487,16 @@ line: 5, token: EOF
 
     #[test]
     fn scan_unexpected_character() -> Result<(), std::io::Error> {
-        let source = "@#";
-        let expected_output = "
+        let source = r#"@#"#;
+        let expected_output = r#"
 line: 1, token: EOF
 [line 1]: SyntaxError: Unexpected character `@`
+@#
+^
 [line 1]: SyntaxError: Unexpected character `#`
-";
+@#
+ ^
+"#;
         test_scanner(source, expected_output)
     }
 }
