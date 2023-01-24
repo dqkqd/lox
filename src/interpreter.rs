@@ -258,12 +258,10 @@ where
                 return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
 
-            Stmt::Class(class) => {
-                self.environment.define(
-                    class.name.lexeme(),
-                    Object::Callable(LoxCallable::lox_class(class.clone()))
-                )
-            }
+            Stmt::Class(class) => self.environment.define(
+                class.name.lexeme(),
+                Object::Callable(LoxCallable::lox_class(class.clone())),
+            ),
         }
         Ok(())
     }
@@ -821,8 +819,7 @@ print instance;
         let expected_output = r#"
 <Hello instance>
 "#;
-    
-        test_interpreter(source, expected_output)
 
+        test_interpreter(source, expected_output)
     }
 }

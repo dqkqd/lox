@@ -1,11 +1,11 @@
 use crate::{
+    class::LoxClass,
     environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     function::{LoxFunction, NativeFunction},
-    class::LoxClass,
     interpreter::Interpreter,
     object::Object,
-    stmt::{Function, Class}
+    stmt::{Class, Function},
 };
 
 pub(crate) trait Callable {
@@ -47,7 +47,7 @@ impl ToString for LoxCallable {
             LoxCallable::LoxFunction(_) | LoxCallable::NativeFunction(_) => {
                 format!("<fn {}>", self.name())
             }
-            LoxCallable::LoxClass(_) => format!("<class {}>", self.name())
+            LoxCallable::LoxClass(_) => format!("<class {}>", self.name()),
         }
     }
 }

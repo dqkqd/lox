@@ -1,23 +1,18 @@
 use crate::{
-    callable::Callable,
-    interpreter::Interpreter,
-    object::Object,
-    error::runtime_error::RuntimeError,
-    stmt};
+    callable::Callable, error::runtime_error::RuntimeError, interpreter::Interpreter,
+    object::Object, stmt,
+};
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct LoxClass {
-    declaration: stmt::Class
+    declaration: stmt::Class,
 }
 
 impl LoxClass {
     pub fn new(declaration: stmt::Class) -> Self {
-        Self {
-            declaration
-        }
+        Self { declaration }
     }
 }
-
 
 impl Callable for LoxClass {
     fn name(&self) -> &str {
@@ -29,18 +24,17 @@ impl Callable for LoxClass {
     }
 
     fn call<W>(
-         &mut self,
-         interpreter: &mut Interpreter<W>,
-         arguments: Vec<Object>,
-     ) -> Result<Object, RuntimeError>
-     where
-         W: std::io::Write,
-     {
-         let lox_instance = LoxInstance::new(self);
-         Ok(Object::LoxInstance(lox_instance))
-     }
+        &mut self,
+        interpreter: &mut Interpreter<W>,
+        arguments: Vec<Object>,
+    ) -> Result<Object, RuntimeError>
+    where
+        W: std::io::Write,
+    {
+        let lox_instance = LoxInstance::new(self);
+        Ok(Object::LoxInstance(lox_instance))
+    }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct LoxInstance {
@@ -56,8 +50,7 @@ impl ToString for LoxInstance {
 impl LoxInstance {
     pub fn new(lox_class: &LoxClass) -> Self {
         Self {
-            lox_class: lox_class.clone()
+            lox_class: lox_class.clone(),
         }
     }
 }
-

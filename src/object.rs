@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{callable::LoxCallable, error::object_error::ObjectError, class::LoxInstance};
+use crate::{callable::LoxCallable, class::LoxInstance, error::object_error::ObjectError};
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
