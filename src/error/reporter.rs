@@ -160,7 +160,7 @@ mod test {
     }
 
     #[test]
-    fn it_works() -> Result<(), std::io::Error> {
+    fn single_error_line_report() -> Result<(), std::io::Error> {
         let source = "!@#";
         let expected_output = r#"
 !@#
@@ -170,4 +170,5 @@ mod test {
 "#;
         test_scanner(source, expected_output)
     }
+
 }
