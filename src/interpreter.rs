@@ -205,7 +205,7 @@ where
                 match object {
                     Object::LoxInstance(instance) => match instance.get(&get.name) {
                         Some(result) => Ok(result.clone()),
-                        None => todo!("raise error field not found"),
+                        None => Err(RuntimeError::undefined_property(&get.name)),
                     },
                     _ => Err(RuntimeError::only_class_instance_has_field(
                         &object, &get.name,
@@ -876,6 +876,23 @@ x.name = 2;
 [line 3]: RuntimeError: `1` is not class instance. It cannot have field `name`
 x.name = 2;
   ^^^^
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn undefined_property() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello {}
+var hello = Hello();
+print hello.name;
+"#;
+
+        let expected_output = r#"
+[line 4]: RuntimeError: Undefined property `name`
+print hello.name;
+            ^^^^
 "#;
 
         test_interpreter(source, expected_output)

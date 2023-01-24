@@ -13,6 +13,7 @@ pub(crate) enum RuntimeErrorType {
     ObjectNotCallable(String),
     ReturnValue(Object), // this is not error
     OnlyClassInstanceHasField(String, String),
+    UndefinedProperty(String),
 }
 
 impl RuntimeErrorType {
@@ -28,6 +29,9 @@ impl RuntimeErrorType {
             RuntimeErrorType::ObjectNotCallable(name) => format!("`{name}` is not a function"),
             RuntimeErrorType::OnlyClassInstanceHasField(object, field) => {
                 format!("`{object}` is not class instance. It cannot have field `{field}`")
+            }
+            RuntimeErrorType::UndefinedProperty(property) => {
+                format!("Undefined property `{property}`")
             }
         }
     }
@@ -79,6 +83,14 @@ impl RuntimeError {
                 object.to_string(),
                 field.lexeme().to_string(),
             ),
+        }
+    }
+
+    pub fn undefined_property(property: &Token) -> Self {
+        Self {
+            start_pos: property.start_pos(),
+            end_pos: property.end_pos(),
+            error_type: RuntimeErrorType::UndefinedProperty(property.lexeme().to_string()),
         }
     }
 
