@@ -24,7 +24,7 @@ impl From<&Scanner> for Parser {
     }
 }
 
-impl ErrorReporter<ParseError> for Parser {
+impl TestErrorReporter<ParseError> for Parser {
     fn errors(&self) -> &[ParseError] {
         &self.errors
     }
@@ -504,7 +504,7 @@ mod test {
 
     use std::io::Write;
 
-    use crate::ast_repr::AstRepr;
+    use crate::{ast_repr::AstRepr, error::reporter::Reporter, source::SourcePos};
 
     use super::*;
 
@@ -519,7 +519,11 @@ mod test {
         let mut ast_repr = AstRepr::default();
         let statements = parser.parse();
         writeln!(&mut result, "{}", ast_repr.repr(&statements))?;
-        writeln!(&mut result, "{}", parser.error_string())?;
+
+        let source_pos = SourcePos::new(source);
+        let reporter = Reporter::new(&source_pos);
+
+        writeln!(&mut result, "{}", parser.error_msg(&reporter))?;
 
         let result = String::from_utf8(result).unwrap();
         assert_eq!(result.trim(), expected_output.trim());
@@ -529,46 +533,51 @@ mod test {
 
     #[test]
     fn primary() -> Result<(), std::io::Error> {
-        let source = "
-nil; true; false; \"this is string\";
+        let source = r#"
+nil; true; false; "this is string";
 123; 123.456; (nil); variable;
-";
-        let expected_output = "
+"#;
+        let expected_output = r#"
 Stmt::Expr(nil)
 Stmt::Expr(true)
 Stmt::Expr(false)
-Stmt::Expr(\"this is string\")
+Stmt::Expr("this is string")
 Stmt::Expr(123)
 Stmt::Expr(123.456)
 Stmt::Expr(Expr::Group(nil))
 Stmt::Expr(Expr::Variable(variable))
-";
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
-    fn goupring_must_be_closed() -> Result<(), std::io::Error> {
-        let source = "(1";
-        let expected_output = "[line 1]: ParseError: Expected `)`. Found `EOF`";
+    fn grouping_must_be_closed() -> Result<(), std::io::Error> {
+        let source = r#"(1"#;
+        let expected_output = r#"
+[line 1]: ParseError: Expected `)`. Found `EOF`
+(1
+ ^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn unary() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 -1.2; !1.2; 
--\"a\"; !\"a\";
+-"a"; !"a";
 -nil; !nil;
 -true; !true;
 -false; !false;
 -(1.2); !(1.2);
 -x; !x;
-";
-        let expected_output = " 
+"#;
+
+        let expected_output = r#" 
 Stmt::Expr(Expr::Unary(- 1.2))
 Stmt::Expr(Expr::Unary(! 1.2))
-Stmt::Expr(Expr::Unary(- \"a\"))
-Stmt::Expr(Expr::Unary(! \"a\"))
+Stmt::Expr(Expr::Unary(- "a"))
+Stmt::Expr(Expr::Unary(! "a"))
 Stmt::Expr(Expr::Unary(- nil))
 Stmt::Expr(Expr::Unary(! nil))
 Stmt::Expr(Expr::Unary(- true))
@@ -579,44 +588,50 @@ Stmt::Expr(Expr::Unary(- Expr::Group(1.2)))
 Stmt::Expr(Expr::Unary(! Expr::Group(1.2)))
 Stmt::Expr(Expr::Unary(- Expr::Variable(x)))
 Stmt::Expr(Expr::Unary(! Expr::Variable(x)))
-";
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn binary() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 1+2; 3-7; true*false; nil/nil;
-\"a\" == \"b\"; nil != nil; 3 > 7; true >= false; 2 < 3; true <= false; 
-";
-        let expected_output = "
+"a" == "b"; nil != nil; 3 > 7; true >= false; 2 < 3; true <= false; 
+"#;
+
+        let expected_output = r#"
 Stmt::Expr(Expr::Binary(1 + 2))
 Stmt::Expr(Expr::Binary(3 - 7))
 Stmt::Expr(Expr::Binary(true * false))
 Stmt::Expr(Expr::Binary(nil / nil))
-Stmt::Expr(Expr::Binary(\"a\" == \"b\"))
+Stmt::Expr(Expr::Binary("a" == "b"))
 Stmt::Expr(Expr::Binary(nil != nil))
 Stmt::Expr(Expr::Binary(3 > 7))
 Stmt::Expr(Expr::Binary(true >= false))
 Stmt::Expr(Expr::Binary(2 < 3))
 Stmt::Expr(Expr::Binary(true <= false))
-";
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn assignment() -> Result<(), std::io::Error> {
-        let source = "
-x = 1; x = \"string\"; x = true; x = nil; x = y; 
+        let source = r#"
+x = 1; x = "string"; x = true; x = nil; x = y; 
 x = y
-";
-        let expected_output = "
+"#;
+        let expected_output = r#"
 Stmt::Expr(Expr::Assign(x = 1))
-Stmt::Expr(Expr::Assign(x = \"string\"))
+Stmt::Expr(Expr::Assign(x = "string"))
 Stmt::Expr(Expr::Assign(x = true))
 Stmt::Expr(Expr::Assign(x = nil))
 Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
-[line 3]: ParseError: Expected `;`. Found `EOF`";
+[line 3]: ParseError: Expected `;`. Found `EOF`
+x = y
+     ^
+"#;
 
         test_parser(source, expected_output)
     }
@@ -624,282 +639,446 @@ Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
     #[test]
     fn synchronize_with_semicolon() -> Result<(), std::io::Error> {
         // synchronize until semicolon, the next token should be `true`.
-        let source = "
+        let source = r#"
 (1 + 2 nothing; 
 true < false;
-";
-        let expected_output = "
+"#;
+        let expected_output = r#"
 Stmt::Expr(Expr::Binary(true < false))
 [line 2]: ParseError: Expected `)`. Found `nothing`
-";
+(1 + 2 nothing;
+       ^^^^^^^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn synchronize_without_semicolon() -> Result<(), std::io::Error> {
         // synchronize until semicolon, `1` should be eaten, the next token should be `var`.
-        let source = "(1 + 2 1 var";
-        let expected_output = "
+        let source = r#"(1 + 2 1 var"#;
+
+        let expected_output = r#"
 [line 1]: ParseError: Expected `)`. Found `1`
+(1 + 2 1 var
+       ^
 [line 1]: ParseError: Expected `variable name`. Found `EOF`
-";
+(1 + 2 1 var
+           ^
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn multiexpressions_with_errors() -> Result<(), std::io::Error> {
-        let source = "
-            \"has semicolon\";
-            (\"no right paren\";
-            (\"has right paren\");
-            \"no semicolon\"";
+        let source = r#"
+"has semicolon";
+("no right paren";
+("has right paren");
+"no semicolon"
+"#;
 
-        let expected_output = "
-Stmt::Expr(\"has semicolon\")
-Stmt::Expr(Expr::Group(\"has right paren\"))
+        let expected_output = r#"
+Stmt::Expr("has semicolon")
+Stmt::Expr(Expr::Group("has right paren"))
 [line 3]: ParseError: Expected `)`. Found `;`
+("no right paren";
+                 ^
 [line 5]: ParseError: Expected `;`. Found `EOF`
-";
+"no semicolon"
+              ^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn print_expression_without_semicolon() -> Result<(), std::io::Error> {
-        let source = "
-            print \"statement\";
-            print \"statement without semicolon\"
-            print 1 + 2;";
+        let source = r#"
+print "statement";
+print "statement without semicolon"
+print 1 + 2;
+"#;
 
-        let expected_output = "
-Stmt::Print(\"statement\")
+        let expected_output = r#"
+Stmt::Print("statement")
 Stmt::Print(Expr::Binary(1 + 2))
 [line 4]: ParseError: Expected `;`. Found `print`
-";
+print 1 + 2;
+^^^^^
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn variable_declaration_statement() -> Result<(), std::io::Error> {
-        let source = "
-            var x = 1; 
-            var x = y + 1;
-            var x
-            print x;
-            ";
+        let source = r#"
+var x = 1; 
+var x = y + 1;
+var x
+print x;
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::Var(x = 1)
 Stmt::Var(x = Expr::Binary(Expr::Variable(y) + 1))
 Stmt::Print(Expr::Variable(x))
 [line 5]: ParseError: Expected `;`. Found `print`
-";
+print x;
+^^^^^
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn assignment_statement() -> Result<(), std::io::Error> {
-        let source = "
-            var x = 1;
-            x = 2;
-            x = y;
-            \"this is not assignment\" = 2
-            ";
+        let source = r#"
+var x = 1;
+x = 2;
+x = y;
+"this is not assignment" = 2
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::Var(x = 1)
 Stmt::Expr(Expr::Assign(x = 2))
 Stmt::Expr(Expr::Assign(x = Expr::Variable(y)))
 [line 5]: ParseError: Inavalid assignment target.
-";
+"this is not assignment" = 2
+                         ^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn assignment_statement_dont_run_to_panic_mode() -> Result<(), std::io::Error> {
-        let source = "
-            2 = 1 // this has error
-            \"this token should not be eaten\";
-            true;
-            ";
+        let source = r#"
+2 = 1 // this has error
+"this token should not be eaten";
+true;
+"#;
 
-        let expected_output = "
-Stmt::Expr(\"this token should not be eaten\")
+        let expected_output = r#"
+Stmt::Expr("this token should not be eaten")
 Stmt::Expr(true)
 [line 2]: ParseError: Inavalid assignment target.
-";
+2 = 1 // this has error
+  ^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn block_statement() -> Result<(), std::io::Error> {
-        let source = "
-            // nested block
-            {
-                {
-                    var x = 1;
-                }
-                var x = 2;
-            }
+        let source = r#"
+// nested block
+{
+  {
+    var x = 1;
+  }
 
-            {
-                1 + 2;
-            ";
+  var x = 2;
+}
 
-        let expected_output = "
+{
+  1 + 2;
+"#;
+
+        let expected_output = r#"
 Stmt::Block(Stmt::Block(Stmt::Var(x = 1)) Stmt::Var(x = 2))
 [line 12]: ParseError: Expected `}`. Found `EOF`
-";
+  1 + 2;
+        ^
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn if_statement() -> Result<(), std::io::Error> {
-        let source = "
-            // normal
-            if (true) var x = 1;
-            else var x = 2;
+        let source = r#"
+// normal
+if (true) var x = 1;
+else var x = 2;
 
-            // nested
-            if (1) 
-                if (2) 3;
-                else 4;
-            ";
+// nested
+if (1) 
+  if (2) 3;
+  else 4;
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::If(cond=true then=Stmt::Var(x = 1) else=Stmt::Var(x = 2))
 Stmt::If(cond=1 then=Stmt::If(cond=2 then=Stmt::Expr(3) else=Stmt::Expr(4)))
-";
+"#;
+
         test_parser(source, expected_output)
     }
 
     #[test]
     fn logical_or() -> Result<(), std::io::Error> {
-        let source = "
-            1 or 2;
-            1 or 2 or 3;
-            1 and 2 or 3;
-        ";
+        let source = r#"
+1 or 2;
+1 or 2 or 3;
+1 and 2 or 3;
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::Expr(Expr::Logical(1 or 2))
 Stmt::Expr(Expr::Logical(Expr::Logical(1 or 2) or 3))
 Stmt::Expr(Expr::Logical(Expr::Logical(1 and 2) or 3))
-";
+"#;
 
         test_parser(source, expected_output)
     }
 
     #[test]
     fn while_statement() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 while (1 + 2)
-    print 1;
+print 1;
 
 while (1 + 2
-        ";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::While(cond=Expr::Binary(1 + 2), body=Stmt::Print(1))
-[line 6]: ParseError: Expected `)`. Found `EOF`
-";
+[line 5]: ParseError: Expected `)`. Found `EOF`
+while (1 + 2
+            ^
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn normal_for_statement() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 for (var i = 0; i < 5; i = i + 1)
-    print i;
+  print i;
 for (1;2;3)
-    4;
-        ";
+  4;
+"#;
 
-        let expected_output  = "
+        let expected_output = r#"
 Stmt::Block(Stmt::Var(i = 0) Stmt::While(cond=Expr::Binary(Expr::Variable(i) < 5), body=Stmt::Block(Stmt::Print(Expr::Variable(i)) Stmt::Expr(Expr::Assign(i = Expr::Binary(Expr::Variable(i) + 1))))))
 Stmt::Block(Stmt::Expr(1) Stmt::While(cond=2, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3))))
-";
+"#;
 
         test_parser(source, expected_output)
     }
 
     #[test]
     fn missing_parts_for_statement() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 for (; 2; 3) 4; // missing initializer
 for (1; ; 3) 4; // missing condition
 for (1; 2; ) 4; // missing increment
 for (;;) 4;    // miss all      
-        ";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::While(cond=2, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3)))
 Stmt::Block(Stmt::Expr(1) Stmt::While(cond=true, body=Stmt::Block(Stmt::Expr(4) Stmt::Expr(3))))
 Stmt::Block(Stmt::Expr(1) Stmt::While(cond=2, body=Stmt::Expr(4)))
 Stmt::While(cond=true, body=Stmt::Expr(4))
-        ";
+"#;
 
         test_parser(source, expected_output)
     }
 
     #[test]
-    fn invalid_for_statement() -> Result<(), std::io::Error> {
-        let source = "
+    fn for_statement_without_semicolon() -> Result<(), std::io::Error> {
+        let source = r#"
 for (;) 4; // missing semicolon
 for () 2; // no semicolon
-for ( // no right paren
-for (;; // no right paren but already parsed init, cond and inc
-for ) // no left paren
-";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 [line 2]: ParseError: Expected expression
+for (;) 4; // missing semicolon
+      ^
 [line 3]: ParseError: Expected expression
-[line 5]: ParseError: Expected expression
-[line 6]: ParseError: Expected `)`. Found `for`
-[line 6]: ParseError: Expected `(`. Found `)`
-";
+for () 2; // no semicolon
+     ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn for_statement_without_right_paren() -> Result<(), std::io::Error> {
+        let source = r#"
+// no right paren
+for (
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected expression
+for (
+     ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    fn for_statement_without_right_paren_but_already_parsed_init_cond_inc(
+    ) -> Result<(), std::io::Error> {
+        let source = r#"
+// no right paren but already parsed init, cond and inc
+for (;;
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected expression
+for (;;
+       ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn for_statement_without_left_paren() -> Result<(), std::io::Error> {
+        let source = r#"
+// no left paren
+for )
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `(`. Found `)`
+for )
+    ^
+"#;
 
         test_parser(source, expected_output)
     }
 
     #[test]
     fn normal_function_declaration() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 fun hello(x, y, z) {
-print x;
-print y;
-print z;
+  print x;
+  print y;
+  print z;
 }
-";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 Stmt::Function(name=hello params=x,y,z body=Stmt::Block(Stmt::Print(Expr::Variable(x)) Stmt::Print(Expr::Variable(y)) Stmt::Print(Expr::Variable(z))))
-";
+"#;
 
         test_parser(source, expected_output)
     }
 
     #[test]
-    fn missing_parts_function_declaration() -> Result<(), std::io::Error> {
-        let source = "
-fun (; // missing function name
-fun f); // missing left paren
-fun f(x, y; // missing right paren
-fun f(,); // missing parameter name
-fun f(); // missing body
-fun f()}; // missing left brace
-fun f(){ print x; // missing right brace
-";
+    fn function_declaration_missing_functino_name() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing function name
+fun (; 
+"#;
 
-        let expected_output = "
-[line 2]: ParseError: Expected `function name`. Found `(`
+        let expected_output = r#"
+[line 3]: ParseError: Expected `function name`. Found `(`
+fun (;
+    ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_left_paren() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing left paren
+fun f); 
+"#;
+
+        let expected_output = r#"
 [line 3]: ParseError: Expected `(`. Found `)`
-[line 4]: ParseError: Expected `)`. Found `;`
-[line 5]: ParseError: Expected `parameter name`. Found `,`
-[line 6]: ParseError: Expected `{`. Found `;`
-[line 7]: ParseError: Expected `{`. Found `}`
-[line 8]: ParseError: Expected `}`. Found `EOF`
-";
+fun f);
+     ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_right_paren() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing right paren
+fun f(x, y; 
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `)`. Found `;`
+fun f(x, y;
+          ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_parameter_name() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing parameter name
+fun f(,); 
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `parameter name`. Found `,`
+fun f(,);
+      ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_body() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing body
+fun f(); 
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `{`. Found `;`
+fun f();
+       ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_left_brace() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing left brace
+fun f()}; 
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `{`. Found `}`
+fun f()};
+       ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn function_declaration_missing_right_brace() -> Result<(), std::io::Error> {
+        let source = r#"
+// missing right brace
+fun f(){ print x;
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `}`. Found `EOF`
+fun f(){ print x;
+                 ^
+"#;
 
         test_parser(source, expected_output)
     }
@@ -912,32 +1091,54 @@ fun f(){ print x; // missing right brace
         }
         let params = params.join(",");
         let source = format!("fun hello({}) {{}}", params);
-        let expected_output = "[line 1]: ParseError: Could not have more than 255 arguments";
-        test_parser(&source, expected_output)
+
+        let mut indicated_error = vec![' '; source.len() - 4]; // `) {}` remove offset for braces
+        indicated_error.push('^');
+        let indicated_error = indicated_error.into_iter().collect::<String>();
+
+        let expected_output = format!(
+            "
+[line 1]: ParseError: Could not have more than 255 arguments
+{}\n{}",
+            source, indicated_error
+        );
+
+        test_parser(&source, &expected_output)
     }
 
     #[test]
     fn normal_function_call() -> Result<(), std::io::Error> {
-        let source = "hello(\"world\"); // this call fuction `hello`";
-        let expected_output = "
-Stmt::Expr(Expr::Call(callee=Expr::Variable(hello) arguments=\"world\"))
-        ";
+        let source = r#"hello("world"); // this call fuction `hello`"#;
+        let expected_output = r#"
+Stmt::Expr(Expr::Call(callee=Expr::Variable(hello) arguments="world"))
+"#;
         test_parser(source, expected_output)
     }
 
     #[test]
     fn missing_parts_function_call() -> Result<(), std::io::Error> {
-        let source = "
-hello); // missing left paren
-hello(1, 2; // missing right paren
-hello(,); // missing parameter name
-";
+        let source = r#"
+// missing left paren
+hello);
 
-        let expected_output = "
-[line 2]: ParseError: Expected `;`. Found `)`
-[line 3]: ParseError: Expected `)`. Found `;`
-[line 4]: ParseError: Expected expression
-    ";
+// missing right paren
+hello(1, 2; 
+
+// missing parameter name
+hello(,); 
+"#;
+
+        let expected_output = r#"
+[line 3]: ParseError: Expected `;`. Found `)`
+hello);
+     ^
+[line 6]: ParseError: Expected `)`. Found `;`
+hello(1, 2;
+          ^
+[line 9]: ParseError: Expected expression
+hello(,);
+      ^ 
+"#;
 
         test_parser(source, expected_output)
     }
@@ -946,18 +1147,18 @@ hello(,); // missing parameter name
     fn return_statement() -> Result<(), std::io::Error> {
         let source = "
 fun f(x) {
-    return x;
+return x;
 }
 
 fun f(x) {
-    return;
+return;
 }
-        ";
+";
 
         let expected_output = "
 Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(Expr::Variable(x))))
 Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(nil)))
-        ";
+";
 
         test_parser(source, expected_output)
     }

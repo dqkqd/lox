@@ -1,6 +1,11 @@
 use std::fmt;
 
-use crate::token::{Token, TokenType};
+use crate::{
+    source::CharPos,
+    token::{Token, TokenType},
+};
+
+use super::reporter::impl_error_pos;
 
 #[derive(PartialEq)]
 pub(crate) enum ParseErrorType {
@@ -27,14 +32,20 @@ impl ParseErrorType {
 
 #[derive(PartialEq)]
 pub(crate) struct ParseError {
+    start_pos: CharPos,
+    end_pos: CharPos,
     line: usize,
     error_type: ParseErrorType,
     panic_mode: bool,
 }
 
+impl_error_pos!(ParseError);
+
 impl ParseError {
     pub fn expected_expression(token: &Token) -> Self {
         Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             line: token.line(),
             error_type: ParseErrorType::ExpectedExpression,
             panic_mode: true,
@@ -43,6 +54,8 @@ impl ParseError {
 
     pub fn unexpected_token(found: &Token, expected: &TokenType) -> Self {
         Self {
+            start_pos: found.start_pos(),
+            end_pos: found.end_pos(),
             line: found.line(),
             error_type: ParseErrorType::UnexpectedToken(
                 found.token_type().to_string(),
@@ -54,6 +67,8 @@ impl ParseError {
 
     pub fn invalid_assignment(token: &Token) -> Self {
         Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             line: token.line(),
             error_type: ParseErrorType::InvalidAssignment,
             panic_mode: true,
@@ -62,6 +77,8 @@ impl ParseError {
 
     pub fn maximum_arguments(token: &Token, size: usize) -> Self {
         Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             line: token.line(),
             error_type: ParseErrorType::MaximumArguments(size),
             panic_mode: true,

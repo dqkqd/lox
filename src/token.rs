@@ -87,6 +87,14 @@ impl Token {
     pub fn line(&self) -> usize {
         self.start_pos.line
     }
+
+    pub fn start_pos(&self) -> CharPos {
+        self.start_pos
+    }
+
+    pub fn end_pos(&self) -> CharPos {
+        self.end_pos
+    }
 }
 
 impl ToString for TokenType {
