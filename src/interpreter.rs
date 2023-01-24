@@ -205,9 +205,11 @@ where
                 match object {
                     Object::LoxInstance(instance) => match instance.get(&get.name) {
                         Some(result) => Ok(result.clone()),
-                        None => todo!("raise error instance not found"),
+                        None => todo!("raise error field not found"),
                     },
-                    _ => todo!("Raise error only instance have field"),
+                    _ => Err(RuntimeError::only_class_instance_has_field(
+                        &object, &get.name,
+                    )),
                 }
             }
 
@@ -219,7 +221,9 @@ where
                         instance.set(&set.name, value.clone());
                         Ok(value)
                     }
-                    _ => todo!("raise error instance have field"),
+                    _ => Err(RuntimeError::only_class_instance_has_field(
+                        &object, &set.name,
+                    )),
                 }
             }
         }
@@ -840,6 +844,38 @@ print instance;
 
         let expected_output = r#"
 <Hello instance>
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn get_field_on_non_class_instance() -> Result<(), std::io::Error> {
+        let source = r#"
+var x = 1;
+x.name;
+"#;
+
+        let expected_output = r#"
+[line 3]: RuntimeError: `1` is not class instance. It cannot have field `name`
+x.name;
+  ^^^^
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn set_field_on_non_class_instance() -> Result<(), std::io::Error> {
+        let source = r#"
+var x = 1;
+x.name = 2;
+"#;
+
+        let expected_output = r#"
+[line 3]: RuntimeError: `1` is not class instance. It cannot have field `name`
+x.name = 2;
+  ^^^^
 "#;
 
         test_interpreter(source, expected_output)

@@ -12,6 +12,7 @@ pub(crate) enum RuntimeErrorType {
     NumberArgumentsMismatch(usize, usize),
     ObjectNotCallable(String),
     ReturnValue(Object), // this is not error
+    OnlyClassInstanceHasField(String, String),
 }
 
 impl RuntimeErrorType {
@@ -25,6 +26,9 @@ impl RuntimeErrorType {
             }
             RuntimeErrorType::ReturnValue(_) => unreachable!("this should not be called as error"),
             RuntimeErrorType::ObjectNotCallable(name) => format!("`{name}` is not a function"),
+            RuntimeErrorType::OnlyClassInstanceHasField(object, field) => {
+                format!("`{object}` is not class instance. It cannot have field `{field}`")
+            }
         }
     }
 }
@@ -64,6 +68,17 @@ impl RuntimeError {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
             error_type: RuntimeErrorType::ObjectNotCallable(object.to_string()),
+        }
+    }
+
+    pub fn only_class_instance_has_field(object: &Object, field: &Token) -> Self {
+        Self {
+            start_pos: field.start_pos(),
+            end_pos: field.end_pos(),
+            error_type: RuntimeErrorType::OnlyClassInstanceHasField(
+                object.to_string(),
+                field.lexeme().to_string(),
+            ),
         }
     }
 
