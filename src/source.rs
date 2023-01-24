@@ -11,6 +11,7 @@ pub(crate) struct CharPos {
 #[derive(Debug)]
 pub(crate) struct SourcePos {
     positions: Vec<CharPos>,
+    newlines_pos: Vec<usize>,
 }
 
 impl SourcePos {
@@ -18,6 +19,8 @@ impl SourcePos {
         let mut positions = Vec::with_capacity(source.len());
 
         let mut line = 0;
+
+        let mut newlines_pos = vec![0];
 
         for (index, ch) in source.chars().enumerate() {
             let width = UnicodeWidthChar::width(ch).unwrap_or(0);
@@ -31,15 +34,25 @@ impl SourcePos {
 
             if ch == '\n' {
                 line += 1;
+                newlines_pos.push(index + 1);
             }
 
             positions.push(char_pos);
         }
 
-        Self { positions }
+        newlines_pos.push(positions.len());
+
+        Self {
+            positions,
+            newlines_pos,
+        }
     }
 
     pub fn get(&self, index: usize) -> Option<CharPos> {
         self.positions.get(index).cloned()
+    }
+
+    pub fn newlines_pos(&self) -> &[usize] {
+        &self.newlines_pos
     }
 }

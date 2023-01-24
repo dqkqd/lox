@@ -21,6 +21,7 @@ impl SyntaxErrorType {
 
 #[derive(PartialEq)]
 pub(crate) struct SyntaxError {
+    pos: CharPos,
     line: usize,
     error_type: SyntaxErrorType,
 }
@@ -28,6 +29,7 @@ pub(crate) struct SyntaxError {
 impl SyntaxError {
     pub fn unterminated_string(pos: CharPos) -> Self {
         Self {
+            pos,
             line: pos.line,
             error_type: SyntaxErrorType::UnterminatedString,
         }
@@ -35,9 +37,18 @@ impl SyntaxError {
 
     pub fn unexpected_character(pos: CharPos) -> Self {
         Self {
+            pos,
             line: pos.line,
             error_type: SyntaxErrorType::UnexpectedCharacter(pos.ch),
         }
+    }
+
+    pub fn start_pos(&self) -> CharPos {
+        self.pos
+    }
+
+    pub fn end_pos(&self) -> CharPos {
+        self.pos
     }
 }
 
