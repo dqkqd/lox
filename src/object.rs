@@ -5,11 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{
-    callable::{Callable, LoxCallable},
-    class::Class,
-    error::object_error::ObjectError,
-};
+use crate::{callable::LoxCallable, class::Class, error::object_error::ObjectError};
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
@@ -188,7 +184,7 @@ impl ToString for Object {
             Object::Number(number) => number.clone().to_string(),
             Object::String(string) => string.clone(),
             Object::Bool(b) => b.to_string(),
-            Object::Callable(fun) => format!("<fn {}>", fun.name()),
+            Object::Callable(callable) => callable.to_string(),
             Object::Class(class) => format!("<class {}>", class.name()),
         }
     }

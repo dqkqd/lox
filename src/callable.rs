@@ -35,6 +35,16 @@ impl LoxCallable {
     }
 }
 
+impl ToString for LoxCallable {
+    fn to_string(&self) -> String {
+        match self {
+            LoxCallable::LoxFunction(_) | LoxCallable::NativeFunction(_) => {
+                format!("<fn {}>", self.name())
+            }
+        }
+    }
+}
+
 impl Callable for LoxCallable {
     fn name(&self) -> &str {
         match self {
