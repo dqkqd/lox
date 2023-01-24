@@ -109,46 +109,46 @@ where
             Expr::Binary(binary) => {
                 let lhs = self.visit_expr(&binary.left)?;
                 let rhs = self.visit_expr(&binary.right)?;
-                let line = binary.operator.line();
-                match binary.operator.token_type() {
+                let operator = &binary.operator;
+                match operator.token_type() {
                     TokenType::Minus => {
-                        Ok((lhs - rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs - rhs).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::Star => {
-                        Ok((lhs * rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs * rhs).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::Slash => {
-                        Ok((lhs / rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs / rhs).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::Plus => {
-                        Ok((lhs + rhs).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs + rhs).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::Greater => {
-                        Ok((lhs.gt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.gt(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::GreaterEqual => {
-                        Ok((lhs.ge(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.ge(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::Less => {
-                        Ok((lhs.lt(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.lt(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::LessEqual => {
-                        Ok((lhs.le(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.le(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::BangEqual => {
-                        Ok((lhs.ne(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.ne(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     TokenType::EqualEqual => {
-                        Ok((lhs.eq(&rhs)).map_err(|err| RuntimeError::from((line, err)))?)
+                        Ok((lhs.eq(&rhs)).map_err(|err| RuntimeError::from((operator, err)))?)
                     }
                     _ => unimplemented!(),
                 }
             }
             Expr::Unary(unary) => {
                 let rhs = self.visit_expr(&unary.right)?;
-                let line = unary.operator.line();
-                match unary.operator.token_type() {
-                    TokenType::Minus => Ok((-rhs).map_err(|err| RuntimeError::from((line, err)))?),
+                let  operator = &unary.operator;
+                match operator.token_type() {
+                    TokenType::Minus => Ok((-rhs).map_err(|err| RuntimeError::from((operator, err)))?),
                     TokenType::Bang => Ok(Object::Bool(!rhs.is_truthy())),
                     _ => unimplemented!(),
                 }

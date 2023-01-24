@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{object::Object, token::Token};
+use crate::{object::Object, token::Token, source::CharPos};
 
 use super::object_error::ObjectError;
 
@@ -31,14 +31,16 @@ impl RuntimeErrorType {
 
 #[derive(PartialEq)]
 pub(crate) struct RuntimeError {
-    line: usize,
+    start_pos: CharPos,
+    end_pos: CharPos,
     error_type: RuntimeErrorType,
 }
 
 impl RuntimeError {
     pub fn undefined_variable(token: &Token) -> Self {
         Self {
-            line: token.line(),
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             error_type: RuntimeErrorType::UndefinedVariable(token.lexeme().to_string()),
         }
     }
@@ -49,21 +51,24 @@ impl RuntimeError {
         args_count: usize,
     ) -> Self {
         Self {
-            line: token.line(),
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             error_type: RuntimeErrorType::NumberArgumentsMismatch(params_count, args_count),
         }
     }
 
     pub fn object_not_callable(token: &Token, object: &Object) -> Self {
         Self {
-            line: token.line(),
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             error_type: RuntimeErrorType::ObjectNotCallable(object.to_string()),
         }
     }
 
     pub fn return_value(token: &Token, value: Object) -> Self {
         Self {
-            line: token.line(),
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
             error_type: RuntimeErrorType::ReturnValue(value),
         }
     }
@@ -76,10 +81,11 @@ impl RuntimeError {
     }
 }
 
-impl From<(usize, ObjectError)> for RuntimeError {
-    fn from(value: (usize, ObjectError)) -> Self {
+impl From<(&Token, ObjectError)> for RuntimeError {
+    fn from(value: (&Token, ObjectError)) -> Self {
         Self {
-            line: value.0,
+            start_pos: value.0.start_pos(),
+            end_pos: value.0.end_pos(),
             error_type: RuntimeErrorType::ObjectError(value.1),
         }
     }
@@ -88,7 +94,8 @@ impl From<(usize, ObjectError)> for RuntimeError {
 impl From<std::io::Error> for RuntimeError {
     fn from(value: std::io::Error) -> Self {
         Self {
-            line: 0,
+            start_pos: CharPos::default(),
+            end_pos: CharPos::default(),
             error_type: RuntimeErrorType::WriteError(value.to_string()),
         }
     }
@@ -99,7 +106,7 @@ impl fmt::Display for RuntimeError {
         write!(
             f,
             "[line {}]: RuntimeError: {}",
-            self.line + 1,
+            self.start_pos.line + 1,
             self.error_type.msg()
         )
     }
