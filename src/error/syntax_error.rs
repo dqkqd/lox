@@ -2,6 +2,8 @@ use std::fmt;
 
 use crate::source::CharPos;
 
+use super::reporter::impl_error_pos;
+
 #[derive(PartialEq)]
 enum SyntaxErrorType {
     UnterminatedString,
@@ -21,43 +23,39 @@ impl SyntaxErrorType {
 
 #[derive(PartialEq)]
 pub(crate) struct SyntaxError {
-    pos: CharPos,
-    line: usize,
+    start_pos: CharPos,
+    end_pos: CharPos,
     error_type: SyntaxErrorType,
 }
+
+impl_error_pos!(SyntaxError);
 
 impl SyntaxError {
     pub fn unterminated_string(pos: CharPos) -> Self {
         Self {
-            pos,
-            line: pos.line,
+            start_pos: pos,
+            end_pos: pos,
             error_type: SyntaxErrorType::UnterminatedString,
         }
     }
 
     pub fn unexpected_character(pos: CharPos) -> Self {
         Self {
-            pos,
-            line: pos.line,
+            start_pos: pos,
+            end_pos: pos,
             error_type: SyntaxErrorType::UnexpectedCharacter(pos.ch),
         }
     }
 
-    pub fn start_pos(&self) -> CharPos {
-        self.pos
-    }
-
-    pub fn end_pos(&self) -> CharPos {
-        self.pos
-    }
 }
+
 
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "[line {}]: SyntaxError: {}",
-            self.line + 1,
+            self.start_pos.line + 1,
             self.error_type.msg()
         )
     }
