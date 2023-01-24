@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{callable::LoxCallable, class::Class, error::object_error::ObjectError};
+use crate::{callable::LoxCallable, error::object_error::ObjectError};
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
@@ -87,7 +87,6 @@ pub(crate) enum Object {
     String(String),
     Bool(bool),
     Callable(LoxCallable),
-    Class(Class),
 }
 
 #[allow(dead_code)]
@@ -185,7 +184,6 @@ impl ToString for Object {
             Object::String(string) => string.clone(),
             Object::Bool(b) => b.to_string(),
             Object::Callable(callable) => callable.to_string(),
-            Object::Class(class) => format!("<class {}>", class.name()),
         }
     }
 }

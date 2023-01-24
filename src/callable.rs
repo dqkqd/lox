@@ -2,9 +2,10 @@ use crate::{
     environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     function::{LoxFunction, NativeFunction},
+    class::LoxClass,
     interpreter::Interpreter,
     object::Object,
-    stmt::Function,
+    stmt::{Function, Class}
 };
 
 pub(crate) trait Callable {
@@ -23,6 +24,7 @@ pub(crate) trait Callable {
 pub(crate) enum LoxCallable {
     LoxFunction(LoxFunction),
     NativeFunction(NativeFunction),
+    LoxClass(LoxClass),
 }
 
 impl LoxCallable {
@@ -33,6 +35,10 @@ impl LoxCallable {
     pub fn native_function(native: NativeFunction) -> Self {
         LoxCallable::NativeFunction(native)
     }
+
+    pub fn lox_class(class: Class) -> Self {
+        LoxCallable::LoxClass(LoxClass::new(class))
+    }
 }
 
 impl ToString for LoxCallable {
@@ -41,6 +47,7 @@ impl ToString for LoxCallable {
             LoxCallable::LoxFunction(_) | LoxCallable::NativeFunction(_) => {
                 format!("<fn {}>", self.name())
             }
+            LoxCallable::LoxClass(_) => format!("<class {}>", self.name())
         }
     }
 }
@@ -50,6 +57,7 @@ impl Callable for LoxCallable {
         match self {
             LoxCallable::LoxFunction(fun) => fun.name(),
             LoxCallable::NativeFunction(fun) => fun.name(),
+            LoxCallable::LoxClass(class) => class.name(),
         }
     }
 
@@ -57,6 +65,7 @@ impl Callable for LoxCallable {
         match self {
             LoxCallable::LoxFunction(fun) => fun.arity(),
             LoxCallable::NativeFunction(fun) => fun.arity(),
+            LoxCallable::LoxClass(class) => class.arity(),
         }
     }
 
@@ -71,6 +80,7 @@ impl Callable for LoxCallable {
         match self {
             LoxCallable::LoxFunction(fun) => fun.call(interpreter, arguments),
             LoxCallable::NativeFunction(fun) => fun.call(interpreter, arguments),
+            LoxCallable::LoxClass(class) => class.call(interpreter, arguments),
         }
     }
 }

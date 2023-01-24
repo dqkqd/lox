@@ -2,7 +2,6 @@ use std::{collections::HashMap, io::StdoutLock};
 
 use crate::{
     callable::{Callable, LoxCallable},
-    class::Class,
     environment::EnvironmentTree,
     error::{reporter::ErrorReporter, runtime_error::RuntimeError},
     expr::Expr,
@@ -259,10 +258,11 @@ where
                 return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
 
-            Stmt::Class(class_statement) => {
-                let class_name = class_statement.name.lexeme();
-                self.environment
-                    .define(class_name, Object::Class(Class::new(class_name)));
+            Stmt::Class(class) => {
+                self.environment.define(
+                    class.name.lexeme(),
+                    Object::Callable(LoxCallable::lox_class(class.clone()))
+                )
             }
         }
         Ok(())
