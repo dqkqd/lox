@@ -34,7 +34,6 @@ impl ParseErrorType {
 pub(crate) struct ParseError {
     start_pos: CharPos,
     end_pos: CharPos,
-    line: usize,
     error_type: ParseErrorType,
     panic_mode: bool,
 }
@@ -46,7 +45,6 @@ impl ParseError {
         Self {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
-            line: token.line(),
             error_type: ParseErrorType::ExpectedExpression,
             panic_mode: true,
         }
@@ -56,7 +54,6 @@ impl ParseError {
         Self {
             start_pos: found.start_pos(),
             end_pos: found.end_pos(),
-            line: found.line(),
             error_type: ParseErrorType::UnexpectedToken(
                 found.token_type().to_string(),
                 expected.to_string(),
@@ -69,7 +66,6 @@ impl ParseError {
         Self {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
-            line: token.line(),
             error_type: ParseErrorType::InvalidAssignment,
             panic_mode: true,
         }
@@ -79,7 +75,6 @@ impl ParseError {
         Self {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
-            line: token.line(),
             error_type: ParseErrorType::MaximumArguments(size),
             panic_mode: true,
         }
@@ -102,7 +97,7 @@ impl fmt::Display for ParseError {
         write!(
             f,
             "[line {}]: ParseError: {}",
-            self.line + 1,
+            self.start_pos.line + 1,
             self.error_type.msg()
         )
     }
