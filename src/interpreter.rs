@@ -2,6 +2,7 @@ use std::{collections::HashMap, io::StdoutLock};
 
 use crate::{
     callable::{Callable, LoxCallable},
+    class::Class,
     environment::EnvironmentTree,
     error::{reporter::ErrorReporter, runtime_error::RuntimeError},
     expr::Expr,
@@ -257,7 +258,12 @@ where
                 let value = self.visit_expr(&return_statement.value)?;
                 return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
-            Stmt::Class(_) => todo!(),
+
+            Stmt::Class(class_statement) => {
+                let class_name = class_statement.name.lexeme();
+                self.environment
+                    .define(class_name, Object::Class(Class::new(class_name)));
+            }
         }
         Ok(())
     }
@@ -781,6 +787,24 @@ counter(); // 2.
         let expected_output = r#"
 1
 2
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration() -> Result<(), std::io::Error> {
+        let source = r#"
+class DevonshireCream {
+  serveOn() {
+    return "Scones";
+  }
+}
+print DevonshireCream;
+"#;
+
+        let expected_output = r#"
+<class DevonshireCream>
 "#;
 
         test_interpreter(source, expected_output)

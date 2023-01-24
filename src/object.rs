@@ -7,6 +7,7 @@ use std::{
 
 use crate::{
     callable::{Callable, LoxCallable},
+    class::Class,
     error::object_error::ObjectError,
 };
 
@@ -90,6 +91,7 @@ pub(crate) enum Object {
     String(String),
     Bool(bool),
     Callable(LoxCallable),
+    Class(Class),
 }
 
 #[allow(dead_code)]
@@ -187,6 +189,7 @@ impl ToString for Object {
             Object::String(string) => string.clone(),
             Object::Bool(b) => b.to_string(),
             Object::Callable(fun) => format!("<fn {}>", fun.name()),
+            Object::Class(class) => format!("<class {}>", class.name()),
         }
     }
 }

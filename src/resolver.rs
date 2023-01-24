@@ -196,7 +196,10 @@ where
                 self.visit_expr(&w.condition)?;
                 self.visit_stmt(&w.body)?;
             }
-            Stmt::Class(_) => todo!(),
+            Stmt::Class(class) => {
+                self.declare(&class.name)?;
+                self.define(&class.name);
+            }
         };
 
         Ok(())
