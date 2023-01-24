@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::{reporter::TestErrorReporter, resolve_error::ResolveError, ErrorReporter},
+    error::{reporter::ErrorReporter, resolve_error::ResolveError},
     expr::Expr,
     interpreter::Interpreter,
     stmt::Stmt,
@@ -21,7 +21,7 @@ where
 
 type ResolveResult<T> = Result<T, ResolveError>;
 
-impl<'a, W> TestErrorReporter<ResolveError> for Resolver<'a, W>
+impl<'a, W> ErrorReporter<ResolveError> for Resolver<'a, W>
 where
     W: std::io::Write,
 {

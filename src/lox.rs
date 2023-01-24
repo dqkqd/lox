@@ -3,8 +3,7 @@ use std::{io::StdoutLock, process::exit};
 use anyhow::{Context, Result};
 
 use crate::{
-    error::reporter::{Reporter, TestErrorReporter},
-    error::ErrorReporter,
+    error::reporter::{ErrorReporter, Reporter},
     interpreter::Interpreter,
     parser::Parser,
     resolver::Resolver,

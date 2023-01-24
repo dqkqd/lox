@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::StdoutLock};
 use crate::{
     callable::{Callable, LoxCallable},
     environment::EnvironmentTree,
-    error::{reporter::TestErrorReporter, runtime_error::RuntimeError, ErrorReporter},
+    error::{reporter::ErrorReporter, runtime_error::RuntimeError},
     expr::Expr,
     object::Object,
     stmt::Stmt,
@@ -23,7 +23,7 @@ where
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
 
-impl<W> TestErrorReporter<RuntimeError> for Interpreter<W>
+impl<W> ErrorReporter<RuntimeError> for Interpreter<W>
 where
     W: std::io::Write,
 {

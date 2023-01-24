@@ -38,7 +38,7 @@ macro_rules! impl_error_pos {
 
 pub(crate) use impl_error_pos;
 
-pub(crate) trait TestErrorReporter<E>
+pub(crate) trait ErrorReporter<E>
 where
     E: ErrorPos,
 {

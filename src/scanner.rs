@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    error::{reporter::TestErrorReporter, syntax_error::SyntaxError},
+    error::{reporter::ErrorReporter, syntax_error::SyntaxError},
     object::Number,
     source::{CharPos, SourcePos},
     token::{Token, TokenType},
@@ -51,7 +51,7 @@ pub(crate) struct Scanner {
     errors: Vec<SyntaxError>,
 }
 
-impl TestErrorReporter<SyntaxError> for Scanner {
+impl ErrorReporter<SyntaxError> for Scanner {
     fn errors(&self) -> &[SyntaxError] {
         &self.errors
     }

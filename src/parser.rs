@@ -3,7 +3,7 @@ use std::{iter::Peekable, vec::IntoIter};
 const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
-    error::{parse_error::ParseError, reporter::TestErrorReporter, ErrorReporter},
+    error::{parse_error::ParseError, reporter::ErrorReporter},
     expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
@@ -24,7 +24,7 @@ impl From<&Scanner> for Parser {
     }
 }
 
-impl TestErrorReporter<ParseError> for Parser {
+impl ErrorReporter<ParseError> for Parser {
     fn errors(&self) -> &[ParseError] {
         &self.errors
     }
