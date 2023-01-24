@@ -39,6 +39,36 @@ macro_rules! impl_error_pos {
 
 pub(crate) use impl_error_pos;
 
+pub(crate) trait TestErrorReporter<E>
+where
+    E: ErrorPos,
+{
+
+    fn errors(&self) -> &[E];
+
+     fn had_error(&self) -> bool {
+         !self.errors().is_empty()
+     }
+
+    fn error_string(&self) -> String {
+        self.errors()
+            .iter()
+            .map(|err| err.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+     fn error_msg(&self, reporter: &Reporter) -> String {
+         self.errors()
+             .iter()
+             .map(|err| reporter.report(err))
+             .collect::<Vec<_>>()
+             .join("\n")
+     }
+
+}
+
+
 pub(crate) struct Reporter<'a> {
     source: &'a SourcePos,
 }
@@ -113,7 +143,8 @@ impl<'a> Reporter<'a> {
         )
     }
 
-    pub fn report(&self, error: &impl ErrorPos) -> String 
+    pub fn report<E>(&self, error: &E) -> String 
+        where E : ErrorPos,
     {
 
         let start_pos = error.start_pos();

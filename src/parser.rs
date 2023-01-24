@@ -3,7 +3,7 @@ use std::{iter::Peekable, vec::IntoIter};
 const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
-    error::{parse_error::ParseError, ErrorReporter},
+    error::{parse_error::ParseError, ErrorReporter, reporter::TestErrorReporter},
     expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,

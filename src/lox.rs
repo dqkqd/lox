@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::{
     error::ErrorReporter, interpreter::Interpreter, parser::Parser, resolver::Resolver,
+    error::reporter::TestErrorReporter,
     scanner::Scanner,
 };
 
