@@ -21,7 +21,7 @@ where
 
 type ResolveResult<T> = Result<T, ResolveError>;
 
-impl<'a, W> ErrorReporter<ResolveError> for Resolver<'a, W>
+impl<'a, W> TestErrorReporter<ResolveError> for Resolver<'a, W>
 where
     W: std::io::Write,
 {
@@ -205,35 +205,32 @@ where
 #[cfg(test)]
 mod test {
 
-    use crate::{ast_repr::AstRepr, parser::Parser, scanner::Scanner};
+    use crate::{
+        ast_repr::AstRepr, error::reporter::Reporter, parser::Parser, scanner::Scanner,
+        source::SourcePos,
+    };
 
     use super::*;
 
     fn test_resolver(source: &str, expected_output: &str) -> Result<(), std::io::Error> {
+        let source_pos = SourcePos::new(source);
+        let reporter = Reporter::new(&source_pos);
+
         let mut result = Vec::new();
         let mut interpreter = Interpreter::new(&mut result);
 
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
-        interpreter.write(&scanner.error_string())?;
+        interpreter.write(&scanner.error_msg(&reporter))?;
 
         let mut parser = Parser::from(&scanner);
         let statements = parser.parse();
-        interpreter.write(&parser.error_string())?;
+        interpreter.write(&parser.error_msg(&reporter))?;
 
         let mut resolver = Resolver::new(&mut interpreter);
         resolver.resolve(&statements);
-        let error_string = resolver.error_string();
-        interpreter.write(&error_string)?;
-
-        let mut ast_repr = AstRepr::default();
-        let expr_depth_string = interpreter
-            .locals()
-            .iter()
-            .map(|(expr, depth)| format!("{}: {}", ast_repr.expr(expr), depth))
-            .collect::<Vec<_>>()
-            .join("\n");
-        interpreter.write(&expr_depth_string)?;
+        let error_msg = resolver.error_msg(&reporter);
+        interpreter.write(&error_msg)?;
 
         let result = String::from_utf8(result).unwrap();
         assert_eq!(result.trim(), expected_output.trim());
@@ -243,39 +240,43 @@ mod test {
 
     #[test]
     fn declare_using_its_own_initializer() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 var a = 2;
 {
     var a = a;
 }
-        ";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 [line 4]: ResolveError: Couldn't read `a` in its own initializer
-        ";
+    var a = a;
+            ^
+"#;
 
         test_resolver(source, expected_output)
     }
 
     #[test]
     fn already_declared_variable_in_scope() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 fun bad() {
     var a = 1;
     var a = 2;
 }        
-        ";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 [line 4]: ResolveError: Already a variable `a` in this scope.
-        ";
+    var a = 2;
+        ^
+"#;
 
         test_resolver(source, expected_output)
     }
 
     #[test]
     fn return_at_top_level() -> Result<(), std::io::Error> {
-        let source = "
+        let source = r#"
 fun x() {
     return 1;
 }
@@ -285,12 +286,16 @@ fun x() {
 }
 
 return 1;
-";
+"#;
 
-        let expected_output = "
+        let expected_output = r#"
 [line 7]: ResolveError: Could not return from top level code
+    return 2;
+    ^^^^^^
 [line 10]: ResolveError: Could not return from top level code
-";
+return 1;
+^^^^^^
+"#;
 
         test_resolver(source, expected_output)
     }
