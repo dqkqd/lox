@@ -196,6 +196,7 @@ where
                 self.visit_expr(&w.condition)?;
                 self.visit_stmt(&w.body)?;
             }
+            Stmt::Class(_) => todo!(),
         };
 
         Ok(())

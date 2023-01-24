@@ -3,6 +3,7 @@ use crate::{expr::Expr, token::Token, visitor::Visitor};
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum Stmt {
     Expression(Expr),
+    Class(Class),
     Print(Expr),
     Return(Return),
     Function(Function),
@@ -119,5 +120,17 @@ pub(crate) struct Return {
 impl Return {
     pub fn new(keyword: Token, value: Expr) -> Self {
         Self { keyword, value }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub(crate) struct Class {
+    pub name: Token,
+    pub methods: Vec<Stmt>,
+}
+
+impl Class {
+    pub fn new(name: Token, methods: Vec<Stmt>) -> Self {
+        Self { name, methods }
     }
 }

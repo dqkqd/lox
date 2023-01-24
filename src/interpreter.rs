@@ -257,6 +257,7 @@ where
                 let value = self.visit_expr(&return_statement.value)?;
                 return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
+            Stmt::Class(_) => todo!(),
         }
         Ok(())
     }

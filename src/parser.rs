@@ -7,7 +7,7 @@ use crate::{
     expr::{Assign, Binary, Call, Expr, Grouping, Unary, Variable},
     object::Object,
     scanner::Scanner,
-    stmt::{Block, Function, If, Return, Stmt, Var, While},
+    stmt::{Block, Class, Function, If, Return, Stmt, Var, While},
     token::{Token, TokenType},
 };
 
@@ -96,6 +96,11 @@ impl Parser {
 
     fn declaration(&mut self) -> ParseResult<Stmt> {
         if self
+            .match_peek_type_then_advance(&[TokenType::Class])
+            .is_some()
+        {
+            self.class_declaration()
+        } else if self
             .match_peek_type_then_advance(&[TokenType::Fun])
             .is_some()
         {
@@ -108,6 +113,27 @@ impl Parser {
         } else {
             self.statement()
         }
+    }
+
+    fn class_declaration(&mut self) -> ParseResult<Stmt> {
+        let class_name = self.consume_identifier("class name")?;
+        self.consume(TokenType::LeftBrace)?;
+        let mut methods = Vec::new();
+        loop {
+            if self.is_end() || self.peek_type() == &TokenType::RightBrace {
+                break;
+            }
+
+            if let &TokenType::Identifier(_) = self.peek_type() {
+                methods.push(self.fun_declaration()?);
+            } else {
+                break;
+            }
+        }
+
+        self.consume(TokenType::RightBrace)?;
+
+        Ok(Stmt::Class(Class::new(class_name, methods)))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Stmt> {
@@ -1159,6 +1185,76 @@ return;
 Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(Expr::Variable(x))))
 Stmt::Function(name=f params=x body=Stmt::Block(Stmt::Return(nil)))
 ";
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration() -> Result<(), std::io::Error> {
+        let source = r#"
+class Breakfast {
+    cook() {
+        print "Eggs a-fryin!";
+    }
+    
+    serve(who) {
+        print "Enjoy your breakfast," + who + ".";
+    }
+}
+"#;
+
+        let expected_output = r#"
+Stmt::Class(name=Breakfast, methods=(Stmt::Function(name=cook params= body=Stmt::Block(Stmt::Print("Eggs a-fryin!"))), Stmt::Function(name=serve params=who body=Stmt::Block(Stmt::Print(Expr::Binary(Expr::Binary("Enjoy your breakfast," + Expr::Variable(who)) + "."))))))
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration_missing_name() -> Result<(), std::io::Error> {
+        let source = r#"
+class {};
+"#;
+
+        let expected_output = r#"
+[line 2]: ParseError: Expected `class name`. Found `{`
+class {};
+      ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration_missing_left_brace() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello };
+"#;
+
+        let expected_output = r#"
+[line 2]: ParseError: Expected `{`. Found `}`
+class Hello };
+            ^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration_missing_right_brace() -> Result<(), std::io::Error> {
+        let source = r#"
+class Breakfast {
+    cook() {
+        print "Eggs a-fryin!";
+    }
+;
+"#;
+
+        let expected_output = r#"
+[line 6]: ParseError: Expected `}`. Found `;`
+;
+^
+"#;
 
         test_parser(source, expected_output)
     }

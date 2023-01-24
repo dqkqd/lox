@@ -140,6 +140,19 @@ impl Visitor<String, String> for AstRepr {
                 let value = self.visit_expr(&return_statement.value);
                 format!("Stmt::Return({value})")
             }
+            Stmt::Class(class) => {
+                let methods = class
+                    .methods
+                    .iter()
+                    .map(|fun| self.visit_stmt(fun))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!(
+                    "
+                    Stmt::Class(name={}, methods=({methods}))",
+                    class.name.lexeme()
+                )
+            }
         }
     }
 }
