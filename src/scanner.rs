@@ -341,10 +341,10 @@ mod test {
 
     #[test]
     fn scan_single_lexeme() -> Result<(), std::io::Error> {
-        let source = "()
-        {},.-+
-        ;*";
-        let expected_output = "
+        let source = r#"()
+{},.-+
+;*"#;
+        let expected_output = r#"
 line: 1, token: (
 line: 1, token: )
 line: 2, token: {
@@ -355,17 +355,17 @@ line: 2, token: -
 line: 2, token: +
 line: 3, token: ;
 line: 3, token: *
-line: 3, token: EOF";
+line: 3, token: EOF"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_operators() -> Result<(), std::io::Error> {
-        let source = "!= !
-         == = 
-         <= < 
-         >= >";
-        let expected_output = "
+        let source = r#"!= !
+== = 
+<= < 
+>= >"#;
+        let expected_output = r#"
 line: 1, token: !=
 line: 1, token: !
 line: 2, token: ==
@@ -375,28 +375,32 @@ line: 3, token: <
 line: 4, token: >=
 line: 4, token: >
 line: 4, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_comments() -> Result<(), std::io::Error> {
-        let source = "// first comment
-        // second comment
-        // third comment";
-        let expected_output = "line: 3, token: EOF";
+        let source = r#"
+// first comment
+// second comment
+// third comment
+"#;
+        let expected_output = r#"line: 4, token: EOF"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_string() -> Result<(), std::io::Error> {
-        let source = "\"first string\"
-        \"second string\"
-        ";
-        let expected_output = "
-line: 1, token: first string
-line: 2, token: second string
-line: 3, token: EOF";
+        let source = r#"
+"first string"
+"second string"
+"#;
+        let expected_output = r#"
+line: 2, token: first string
+line: 3, token: second string
+line: 3, token: EOF
+"#;
         test_scanner(source, expected_output)
     }
 
@@ -414,56 +418,57 @@ line: 1, token: EOF
 
     #[test]
     fn scan_decimal_number() -> Result<(), std::io::Error> {
-        let source = "123.456";
-        let expected_output = "
+        let source = r#"123.456"#;
+        let expected_output = r#"
 line: 1, token: 123.456
 line: 1, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_integral_number() -> Result<(), std::io::Error> {
-        let source = "123";
-        let expected_output = "
+        let source = r#"123"#;
+        let expected_output = r#"
 line: 1, token: 123
 line: 1, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_number_without_dot() -> Result<(), std::io::Error> {
-        let source = "123.";
-        let expected_output = "
+        let source = r#"123."#;
+        let expected_output = r#"
 line: 1, token: 123
 line: 1, token: .
 line: 1, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_identifier() -> Result<(), std::io::Error> {
-        let source = "var language = \"lox\"";
-        let expected_output = "
+        let source = r#"var language = "lox""#;
+        let expected_output = r#"
 line: 1, token: var
 line: 1, token: language
 line: 1, token: =
 line: 1, token: lox
 line: 1, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
     #[test]
     fn scan_reserved_keywords() -> Result<(), std::io::Error> {
-        let source = "and class else
-        false for fun
-        if nil or print
-        return super this 
-        true var while";
-        let expected_output = "
+        let source = r#"and class else
+false for fun
+if nil or print
+return super this 
+true var while
+"#;
+        let expected_output = r#"
 line: 1, token: and
 line: 1, token: class
 line: 1, token: else
@@ -481,7 +486,7 @@ line: 5, token: true
 line: 5, token: var
 line: 5, token: while
 line: 5, token: EOF
-        ";
+"#;
         test_scanner(source, expected_output)
     }
 
