@@ -3,8 +3,13 @@ use std::{io::StdoutLock, process::exit};
 use anyhow::{Context, Result};
 
 use crate::{
-    error::reporter::TestErrorReporter, error::ErrorReporter, interpreter::Interpreter,
-    parser::Parser, resolver::Resolver, scanner::Scanner,
+    error::reporter::{Reporter, TestErrorReporter},
+    error::ErrorReporter,
+    interpreter::Interpreter,
+    parser::Parser,
+    resolver::Resolver,
+    scanner::Scanner,
+    source::SourcePos,
 };
 
 pub fn run_file(path: &std::path::PathBuf) -> Result<()> {
@@ -68,13 +73,16 @@ where
     }
 
     fn run(&mut self, source: &str) -> Result<(), std::io::Error> {
+        let source_pos = SourcePos::new(source);
+        let reporter = Reporter::new(&source_pos);
+
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
 
         self.had_scan_error = scanner.had_error();
 
         if self.had_scan_error {
-            self.interpreter.write(&scanner.error_string())?;
+            self.interpreter.write(&scanner.error_msg(&reporter))?;
             return Ok(());
         }
 
@@ -82,7 +90,7 @@ where
         let statements = parser.parse();
         self.had_parse_error = parser.had_error();
         if self.had_parse_error {
-            self.interpreter.write(&parser.error_string())?;
+            self.interpreter.write(&parser.error_msg(&reporter))?;
             return Ok(());
         }
 
@@ -90,15 +98,15 @@ where
         resolver.resolve(&statements);
         self.had_resolve_error = resolver.had_error();
         if self.had_resolve_error {
-            let error_string = resolver.error_string();
-            self.interpreter.write(&error_string)?;
+            let error_msg = resolver.error_msg(&reporter);
+            self.interpreter.write(&error_msg)?;
             return Ok(());
         }
 
         self.interpreter.interpret(&statements);
         if self.interpreter.had_error() {
-            let error_string = self.interpreter.error_string();
-            self.interpreter.write(&error_string)?;
+            let error_msg = self.interpreter.error_msg(&reporter);
+            self.interpreter.write(&error_msg)?;
             return Ok(());
         }
 
