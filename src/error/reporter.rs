@@ -76,19 +76,51 @@ impl<'a> Reporter<'a> {
         format!("{}\n{}", src_string.trim_end(), err_string.trim_end())
     }
 
+    fn error_in_middle(&self, line: usize, start_pos: usize, end_pos: usize) -> String {
+
+        let newlines_pos = self.source.newlines_pos();
+
+        let start_line_index = newlines_pos[line];
+        let end_line_index = newlines_pos[line + 1] - 1;
+
+        self.draw_one_line_error(
+            (start_line_index, end_line_index),
+            (start_pos, end_pos),
+        )
+    }
+
+    fn error_to_end(&self, line: usize, start_pos: usize) -> String {
+        let newlines_pos = self.source.newlines_pos();
+
+        let start_line_index = newlines_pos[line];
+        let end_line_index = newlines_pos[line + 1] - 1;
+
+        self.draw_one_line_error(
+            (start_line_index, end_line_index),
+            (start_pos, end_line_index),
+        )
+    }
+
+    fn error_from_start(&self, line: usize, end_pos: usize) -> String {
+        let newlines_pos = self.source.newlines_pos();
+
+        let start_line_index = newlines_pos[line];
+        let end_line_index = newlines_pos[line + 1] - 1;
+
+        self.draw_one_line_error(
+            (start_line_index, end_line_index),
+            (start_line_index, end_pos),
+        )
+    }
+
     pub fn report(&self, error: &impl ErrorPos) -> String {
 
         let start_pos = error.start_pos();
         let end_pos = error.end_pos();
 
-        let newlines_pos = self.source.newlines_pos();
-
-        let start_line_index = newlines_pos[start_pos.line];
-        let end_line_index = newlines_pos[end_pos.line + 1];
-
         // handle one line
         if start_pos.line == end_pos.line {
-            self.draw_one_line_error((start_line_index, end_line_index - 1), (start_pos.index, end_pos.index))
+            self.error_in_middle(start_pos.line, start_pos.index, end_pos.index)
         } else {
             todo!()
         }
