@@ -42,6 +42,7 @@ impl Visitor<String, String> for AstRepr {
                 Object::String(s) => format!("\"{s}\""),
                 Object::Bool(b) => b.to_string(),
                 Object::Callable(callable) => callable.to_string(),
+                Object::LoxInstance(instance) => instance.to_string(),
             },
             Expr::Grouping(group) => {
                 let expr = self.visit_expr(&group.expr);
