@@ -18,7 +18,7 @@ fn normal_string(pos: &CharPos) -> String {
 }
 
 
-pub(crate) trait ErrorPos {
+pub(crate) trait ErrorPos : std::error::Error {
     fn start_pos(&self) -> CharPos;
     fn end_pos(&self) -> CharPos;
 }
@@ -113,18 +113,22 @@ impl<'a> Reporter<'a> {
         )
     }
 
-    pub fn report(&self, error: &impl ErrorPos) -> String {
+    pub fn report(&self, error: &impl ErrorPos) -> String 
+    {
 
         let start_pos = error.start_pos();
         let end_pos = error.end_pos();
 
+
+        let mut result = String::new();
+        result.push_str(&format!("{}\n", error.to_string()));
+
         if start_pos.line == end_pos.line {
             // handle one line
-            self.error_in_middle(start_pos.line, start_pos.index, end_pos.index)
+            result.push_str(&self.error_in_middle(start_pos.line, start_pos.index, end_pos.index));
         } else {
             // handle multiple line
-            let mut result = String::new();
-
+            
             // first line
             result.push_str(& self.error_to_end(start_pos.line, start_pos.index));
 
@@ -139,9 +143,9 @@ impl<'a> Reporter<'a> {
 
             todo!("Add test for this case");
 
-            result
-
         }
+
+        result
 
     }
 }
@@ -181,8 +185,10 @@ mod test {
     fn single_error_line_report() -> Result<(), std::io::Error> {
         let source = "!@#";
         let expected_output = r#"
+[line 1]: SyntaxError: Unexpected character `@`
 !@#
  ^
+[line 1]: SyntaxError: Unexpected character `#`
 !@#
   ^
 "#;
