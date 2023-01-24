@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
+    rc::Rc,
 };
 
 use crate::{
@@ -16,6 +17,13 @@ pub(crate) struct LoxClass {
 impl LoxClass {
     pub fn new(declaration: stmt::Class) -> Self {
         Self { declaration }
+    }
+
+    pub fn new_instance(&self) -> LoxInstance {
+        LoxInstance {
+            lox_class: self.clone(),
+            fields: Default::default(),
+        }
     }
 }
 
@@ -36,7 +44,7 @@ impl Callable for LoxClass {
     where
         W: std::io::Write,
     {
-        let lox_instance = LoxInstance::new(self);
+        let lox_instance = self.new_instance();
         Ok(Object::LoxInstance(lox_instance))
     }
 }
@@ -62,13 +70,6 @@ impl ToString for LoxInstance {
 }
 
 impl LoxInstance {
-    pub fn new(lox_class: &LoxClass) -> Self {
-        Self {
-            lox_class: lox_class.clone(),
-            fields: HashMap::default(),
-        }
-    }
-
     pub fn get(&self, name: &Token) -> Option<&Object> {
         self.fields.get(name.lexeme())
     }
