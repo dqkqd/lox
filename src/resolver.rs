@@ -141,7 +141,7 @@ where
                 self.visit_expr(&set.value)?;
                 self.visit_expr(&set.object)?;
             }
-            Expr::This(_) => todo!(),
+            Expr::This(this) => self.resolve_local(e.clone(), &this.keyword),
         }
         Ok(())
     }
@@ -205,9 +205,18 @@ where
             Stmt::Class(class) => {
                 self.declare(&class.name)?;
                 self.define(&class.name);
+
+                self.begin_scope();
+                self.scopes
+                    .last_mut()
+                    .unwrap()
+                    .insert("this".to_uppercase(), false);
+
                 for method in &class.methods {
                     self.visit_stmt(method)?;
                 }
+
+                self.end_scope()
             }
         };
 
