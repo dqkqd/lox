@@ -9,10 +9,15 @@ use crate::{callable::LoxCallable, class::LoxInstance, error::object_error::Obje
 
 type ObjectOperationResult = Result<Object, ObjectError>;
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialOrd)]
 pub(crate) struct Number(f64);
 
-#[allow(clippy::derive_hash_xor_eq)]
+impl PartialEq for Number {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.to_bits().hash(state)

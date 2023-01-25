@@ -12,7 +12,7 @@ use crate::{
     stmt::Function,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub(crate) struct LoxFunction {
     declaration: Function,
     closure: EnvironmentTree,
@@ -27,8 +27,13 @@ impl LoxFunction {
     }
 }
 
+impl PartialEq for LoxFunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.declaration == other.declaration
+    }
+}
+
 // cannot hash environment
-#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for LoxFunction {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.declaration.hash(state)
