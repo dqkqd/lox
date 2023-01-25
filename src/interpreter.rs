@@ -85,7 +85,8 @@ where
     }
 
     pub fn add_new_instance(&mut self, lox_instance: LoxInstance) {
-        self.lox_instances.insert(lox_instance, Default::default());
+        self.lox_instances
+            .insert(lox_instance.clone(), LoxInstanceFields::from(lox_instance));
     }
 
     pub fn instance_id(&self) -> usize {
@@ -221,7 +222,6 @@ where
                         let instance = self.lox_instances.get(&instance_no_fields).unwrap();
                         instance
                             .get(&get.name)
-                            .cloned()
                             .ok_or_else(|| RuntimeError::undefined_property(&get.name))
                     }
                     _ => Err(RuntimeError::only_class_instance_has_field(
@@ -947,6 +947,25 @@ print hello.name;
         let expected_output = r#"
 dqk
 "#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn method_on_class() -> Result<(), std::io::Error> {
+        let source = r#"
+class Bacon {
+    eat() {
+      print "Crunch crunch crunch!";
+    }
+}
+  
+Bacon().eat(); // Prints "Crunch crunch crunch!".
+"#;
+
+        let expected_output = r#"
+Crunch crunch crunch!
+        "#;
 
         test_interpreter(source, expected_output)
     }

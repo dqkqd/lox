@@ -4,8 +4,13 @@ use std::{
 };
 
 use crate::{
-    callable::Callable, error::runtime_error::RuntimeError, function::LoxFunction,
-    interpreter::Interpreter, object::Object, stmt, token::Token,
+    callable::{Callable, LoxCallable},
+    error::runtime_error::RuntimeError,
+    function::LoxFunction,
+    interpreter::Interpreter,
+    object::Object,
+    stmt,
+    token::Token,
 };
 
 #[derive(Debug, Clone)]
@@ -85,14 +90,30 @@ impl ToString for LoxInstance {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct LoxInstanceFields {
+    instance: LoxInstance,
     fields: HashMap<String, Object>,
 }
 
+impl From<LoxInstance> for LoxInstanceFields {
+    fn from(instance: LoxInstance) -> Self {
+        LoxInstanceFields {
+            instance,
+            fields: Default::default(),
+        }
+    }
+}
 impl LoxInstanceFields {
-    pub fn get(&self, name: &Token) -> Option<&Object> {
-        self.fields.get(name.lexeme())
+    pub fn get(&self, name: &Token) -> Option<Object> {
+        let object = self.fields.get(name.lexeme());
+        if object.is_none() {
+            self.instance
+                .find_method(name.lexeme())
+                .map(|fun| Object::Callable(LoxCallable::LoxFunction(fun.clone())))
+        } else {
+            object.cloned()
+        }
     }
 
     pub fn set(&mut self, name: &Token, value: Object) {
