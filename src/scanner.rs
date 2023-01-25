@@ -171,7 +171,7 @@ impl Scanner {
     }
 
     fn identifier(&mut self) -> TokenType {
-        let identifier = self.read_while(|c| c.is_ascii_alphanumeric());
+        let identifier = self.read_while(|c| is_alpha(c) || c.is_ascii_digit());
         match self.reserved_keywords.get(&identifier) {
             Some(token_type) => token_type.clone(),
             None => TokenType::Identifier(identifier.clone()),
@@ -503,6 +503,16 @@ line: 1, token: EOF
 @#
  ^
 "#;
+        test_scanner(source, expected_output)
+    }
+
+    #[test]
+    fn scan_underscore_() -> Result<(), std::io::Error> {
+        let source = r#"x_y"#;
+        let expected_output = r#"
+line: 1, token: x_y
+line: 1, token: EOF
+        "#;
         test_scanner(source, expected_output)
     }
 }
