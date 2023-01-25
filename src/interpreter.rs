@@ -245,6 +245,7 @@ where
                     )),
                 }
             }
+            Expr::This(_) => todo!(),
         }
     }
 

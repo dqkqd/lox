@@ -141,6 +141,7 @@ where
                 self.visit_expr(&set.value)?;
                 self.visit_expr(&set.object)?;
             }
+            Expr::This(_) => todo!(),
         }
         Ok(())
     }

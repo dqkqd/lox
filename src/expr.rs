@@ -12,6 +12,7 @@ pub(crate) enum Expr {
     Call(Call),
     Get(Get),
     Set(Set),
+    This(This),
 }
 
 impl Eq for Expr {}
@@ -139,5 +140,16 @@ impl Set {
             name,
             value: Box::new(value),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub(crate) struct This {
+    pub keyword: Token,
+}
+
+impl This {
+    pub fn new(keyword: Token) -> Self {
+        Self { keyword }
     }
 }

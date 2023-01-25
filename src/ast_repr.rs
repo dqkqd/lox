@@ -86,6 +86,7 @@ impl Visitor<String, String> for AstRepr {
                 let value = self.visit_expr(&set.value);
                 format!("Expr::Set(object={object}, name={name}, value={value})")
             }
+            Expr::This(_) => "Expr::This".to_string(),
         }
     }
 

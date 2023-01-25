@@ -4,7 +4,7 @@ const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
     error::{parse_error::ParseError, reporter::ErrorReporter},
-    expr::{Assign, Binary, Call, Expr, Get, Grouping, Set, Unary, Variable},
+    expr::{Assign, Binary, Call, Expr, Get, Grouping, Set, This, Unary, Variable},
     object::Object,
     scanner::Scanner,
     stmt::{Block, Class, Function, If, Return, Stmt, Var, While},
@@ -477,6 +477,7 @@ impl Parser {
                 return Ok(Expr::Grouping(Grouping::new(expr)));
             }
             TokenType::Identifier(_) => Expr::Variable(Variable::new(self.peek().clone())),
+            TokenType::This => Expr::This(This::new(self.peek().clone())),
             _ => {
                 let error = ParseError::expected_expression(self.peek());
                 return Err(error);
@@ -1286,6 +1287,19 @@ x.y = 1;
 
         let expected_output = r#"
 Stmt::Expr(Expr::Set(object=Expr::Variable(x), name=y, value=1))
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn this() -> Result<(), std::io::Error> {
+        let source = r#"
+this;
+"#;
+
+        let expected_output = r#"
+Stmt::Expr(Expr::This)
 "#;
 
         test_parser(source, expected_output)
