@@ -2,6 +2,7 @@ use std::{collections::HashMap, io::StdoutLock};
 
 use crate::{
     callable::{Callable, LoxCallable},
+    class::{LoxInstance, LoxInstanceFields},
     environment::EnvironmentTree,
     error::{reporter::ErrorReporter, runtime_error::RuntimeError},
     expr::Expr,
@@ -19,6 +20,7 @@ where
     environment: EnvironmentTree,
     errors: Vec<RuntimeError>,
     locals: HashMap<Expr, usize>,
+    lox_instances: HashMap<LoxInstance, LoxInstanceFields>,
 }
 
 type InterpreterResult<T> = Result<T, RuntimeError>;
@@ -43,6 +45,7 @@ where
             environment: EnvironmentTree::default(),
             errors: Default::default(),
             locals: Default::default(),
+            lox_instances: Default::default(),
         }
     }
 
@@ -80,6 +83,10 @@ where
             .collect();
     }
 
+    pub fn add_new_instance(&mut self, lox_instance: LoxInstance) {
+        self.lox_instances.insert(lox_instance, Default::default());
+    }
+
     pub fn environment_mut(&mut self) -> &mut EnvironmentTree {
         &mut self.environment
     }
@@ -96,6 +103,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
             environment: EnvironmentTree::default(),
             errors: Default::default(),
             locals: Default::default(),
+            lox_instances: Default::default(),
         }
     }
 }
@@ -203,10 +211,14 @@ where
             Expr::Get(get) => {
                 let object = self.visit_expr(&get.object)?;
                 match object {
-                    Object::LoxInstance(instance) => match instance.get(&get.name) {
-                        Some(result) => Ok(result.clone()),
-                        None => Err(RuntimeError::undefined_property(&get.name)),
-                    },
+                    Object::LoxInstance(instance_no_fields) => {
+                        // we always sure that instance is exist
+                        let instance = self.lox_instances.get(&instance_no_fields).unwrap();
+                        instance
+                            .get(&get.name)
+                            .cloned()
+                            .ok_or_else(|| RuntimeError::undefined_property(&get.name))
+                    }
                     _ => Err(RuntimeError::only_class_instance_has_field(
                         &object, &get.name,
                     )),
@@ -216,8 +228,10 @@ where
             Expr::Set(set) => {
                 let object = self.visit_expr(&set.object)?;
                 match object {
-                    Object::LoxInstance(mut instance) => {
+                    Object::LoxInstance(instance_no_fields) => {
                         let value = self.visit_expr(&set.value)?;
+                        // we always sure that instance is exist
+                        let instance = self.lox_instances.get_mut(&instance_no_fields).unwrap();
                         instance.set(&set.name, value.clone());
                         Ok(value)
                     }
@@ -893,6 +907,22 @@ print hello.name;
 [line 4]: RuntimeError: Undefined property `name`
 print hello.name;
             ^^^^
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn get_set_field_attribute_on_class_instance() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello {}
+var hello = Hello();
+hello.name = "dqk";
+print hello.name;
+"#;
+
+        let expected_output = r#"
+dqk
 "#;
 
         test_interpreter(source, expected_output)

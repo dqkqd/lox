@@ -129,6 +129,8 @@ pub(crate) struct Class {
     pub methods: Vec<Stmt>,
 }
 
+impl Eq for Class {}
+
 impl Class {
     pub fn new(name: Token, methods: Vec<Stmt>) -> Self {
         Self { name, methods }
