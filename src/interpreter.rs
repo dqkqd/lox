@@ -6,6 +6,7 @@ use crate::{
     environment::EnvironmentTree,
     error::{reporter::ErrorReporter, runtime_error::RuntimeError},
     expr::Expr,
+    function::LoxFunction,
     object::Object,
     stmt::Stmt,
     token::{Token, TokenType},
@@ -302,10 +303,22 @@ where
                 return Err(RuntimeError::return_value(&return_statement.keyword, value));
             }
 
-            Stmt::Class(class) => self.environment.define(
-                class.name.lexeme(),
-                Object::Callable(LoxCallable::lox_class(class.clone())),
-            ),
+            Stmt::Class(class) => {
+                let mut methods = HashMap::new();
+                for method in &class.methods {
+                    if let Stmt::Function(method) = method {
+                        let lox_function =
+                            LoxFunction::new(method.clone(), self.environment.clone());
+                        methods.insert(lox_function.name().to_string(), lox_function);
+                    } else {
+                        todo!("class should only contain methods")
+                    }
+                }
+                self.environment.define(
+                    class.name.lexeme(),
+                    Object::Callable(LoxCallable::lox_class(class.clone(), methods)),
+                )
+            }
         }
         Ok(())
     }

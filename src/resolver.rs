@@ -204,6 +204,9 @@ where
             Stmt::Class(class) => {
                 self.declare(&class.name)?;
                 self.define(&class.name);
+                for method in &class.methods {
+                    self.visit_stmt(method)?;
+                }
             }
         };
 

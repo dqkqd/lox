@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     class::LoxClass,
     environment::EnvironmentTree,
@@ -36,8 +38,8 @@ impl LoxCallable {
         LoxCallable::NativeFunction(native)
     }
 
-    pub fn lox_class(class: Class) -> Self {
-        LoxCallable::LoxClass(LoxClass::new(class))
+    pub fn lox_class(class: Class, methods: HashMap<String, LoxFunction>) -> Self {
+        LoxCallable::LoxClass(LoxClass::new(class, methods))
     }
 }
 

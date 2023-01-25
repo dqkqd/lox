@@ -1,18 +1,39 @@
-use std::{collections::HashMap, hash::Hash};
-
-use crate::{
-    callable::Callable, error::runtime_error::RuntimeError, interpreter::Interpreter,
-    object::Object, stmt, token::Token,
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
 };
 
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+use crate::{
+    callable::Callable, error::runtime_error::RuntimeError, function::LoxFunction,
+    interpreter::Interpreter, object::Object, stmt, token::Token,
+};
+
+#[derive(Debug, Clone)]
 pub(crate) struct LoxClass {
     declaration: stmt::Class,
+    methods: HashMap<String, LoxFunction>,
+}
+
+impl PartialEq for LoxClass {
+    fn eq(&self, other: &Self) -> bool {
+        self.declaration == other.declaration
+    }
+}
+
+impl Eq for LoxClass {}
+
+impl Hash for LoxClass {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.declaration.hash(state)
+    }
 }
 
 impl LoxClass {
-    pub fn new(declaration: stmt::Class) -> Self {
-        Self { declaration }
+    pub fn new(declaration: stmt::Class, methods: HashMap<String, LoxFunction>) -> Self {
+        Self {
+            declaration,
+            methods,
+        }
     }
 
     pub fn new_instance(&mut self, id: usize) -> LoxInstance {
@@ -50,6 +71,12 @@ impl Callable for LoxClass {
 pub(crate) struct LoxInstance {
     id: usize,
     lox_class: LoxClass,
+}
+
+impl LoxInstance {
+    pub fn find_method(&self, name: &str) -> Option<&LoxFunction> {
+        self.lox_class.methods.get(name)
+    }
 }
 
 impl ToString for LoxInstance {
