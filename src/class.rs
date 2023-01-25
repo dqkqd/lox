@@ -7,22 +7,17 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub(crate) struct LoxClass {
-    instance_id: usize,
     declaration: stmt::Class,
 }
 
 impl LoxClass {
     pub fn new(declaration: stmt::Class) -> Self {
-        Self {
-            declaration,
-            instance_id: 0,
-        }
+        Self { declaration }
     }
 
-    pub fn new_instance(&mut self) -> LoxInstance {
-        self.instance_id += 1;
+    pub fn new_instance(&mut self, id: usize) -> LoxInstance {
         LoxInstance {
-            id: self.instance_id,
+            id,
             lox_class: self.clone(),
         }
     }
@@ -45,7 +40,7 @@ impl Callable for LoxClass {
     where
         W: std::io::Write,
     {
-        let lox_instance = self.new_instance();
+        let lox_instance = self.new_instance(interpreter.instance_id());
         interpreter.add_new_instance(lox_instance.clone());
         Ok(Object::LoxInstance(lox_instance))
     }
@@ -59,7 +54,7 @@ pub(crate) struct LoxInstance {
 
 impl ToString for LoxInstance {
     fn to_string(&self) -> String {
-        format!("<{} instance>", self.lox_class.name())
+        format!("<{} instance, id {}>", self.lox_class.name(), self.id)
     }
 }
 

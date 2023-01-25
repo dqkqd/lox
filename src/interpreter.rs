@@ -87,6 +87,10 @@ where
         self.lox_instances.insert(lox_instance, Default::default());
     }
 
+    pub fn instance_id(&self) -> usize {
+        self.lox_instances.len()
+    }
+
     pub fn environment_mut(&mut self) -> &mut EnvironmentTree {
         &mut self.environment
     }
@@ -852,12 +856,18 @@ print DevonshireCream;
     fn class_instance_declaration() -> Result<(), std::io::Error> {
         let source = r#"
 class Hello {}
-var instance = Hello();
-print instance;
+var instance1 = Hello();
+print instance1;
+var instance2 = Hello();
+print instance2;
+var instance3 = Hello();
+print instance3;
 "#;
 
         let expected_output = r#"
-<Hello instance>
+<Hello instance, id 0>
+<Hello instance, id 1>
+<Hello instance, id 2>
 "#;
 
         test_interpreter(source, expected_output)
