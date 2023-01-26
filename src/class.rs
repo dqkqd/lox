@@ -15,6 +15,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub(crate) struct LoxClass {
+    superclass: Option<Box<LoxClass>>,
     declaration: stmt::Class,
     methods: HashMap<String, LoxFunction>,
 }
@@ -34,8 +35,13 @@ impl Hash for LoxClass {
 }
 
 impl LoxClass {
-    pub fn new(declaration: stmt::Class, methods: HashMap<String, LoxFunction>) -> Self {
+    pub fn new(
+        declaration: stmt::Class,
+        superclass: Option<LoxClass>,
+        methods: HashMap<String, LoxFunction>,
+    ) -> Self {
         Self {
+            superclass: superclass.map(Box::new),
             declaration,
             methods,
         }
@@ -89,7 +95,15 @@ pub(crate) struct LoxInstance {
 
 impl LoxInstance {
     pub fn find_method(&self, name: &str) -> Option<&LoxFunction> {
-        self.lox_class.methods.get(name)
+        let method = self.lox_class.methods.get(name);
+        if method.is_some() {
+            return method;
+        }
+
+        self.lox_class
+            .superclass
+            .as_ref()
+            .and_then(|superclass| superclass.methods.get(name))
     }
 }
 

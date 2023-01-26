@@ -310,15 +310,18 @@ where
                     None => None,
                 };
 
-                if let Some(superclass) = &superclass {
-                    match superclass {
-                        &Object::Callable(LoxCallable::LoxClass(_)) => (),
+                let superclass = match &superclass {
+                    Some(inner) => match &inner {
+                        &Object::Callable(LoxCallable::LoxClass(lox_class)) => {
+                            Some(lox_class.clone())
+                        }
                         _ => {
                             let name = &class.superclass.clone().unwrap().name;
                             return Err(RuntimeError::superclass_must_be_class(name));
                         }
-                    }
-                }
+                    },
+                    _ => None,
+                };
 
                 let mut methods = HashMap::new();
                 for method in &class.methods {
@@ -334,7 +337,7 @@ where
                 }
                 self.environment.define(
                     class.name.lexeme(),
-                    Object::Callable(LoxCallable::lox_class(class.clone(), methods)),
+                    Object::Callable(LoxCallable::lox_class(class.clone(), superclass, methods)),
                 )
             }
         }
@@ -1130,6 +1133,51 @@ class Hello : NotAClass {}
 [line 2]: RuntimeError: Undefined variable `NotAClass`
 class Hello : NotAClass {}
               ^^^^^^^^^
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn subclass_can_inherit_valid_superclass() -> Result<(), std::io::Error> {
+        let source = r#"
+class A {}
+class B : A {}
+class C : B {}
+class D : A {}
+"#;
+
+        let expected_output = r#""#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn subclass_inherit_method_from_superclass() -> Result<(), std::io::Error> {
+        let source = r#"
+class A {
+    f() {
+        print "`f` is called from super class";
+    }
+
+    g() {
+        print "`g` is called from super class";
+    }
+}
+
+class B : A {
+    g() {
+        print "`g` is called from sub class";
+    }
+}
+
+B().g(); // call g from sub
+B().f(); // call f from super
+"#;
+
+        let expected_output = r#"
+`g` is called from sub class
+`f` is called from super class
 "#;
 
         test_interpreter(source, expected_output)

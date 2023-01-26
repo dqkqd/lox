@@ -38,8 +38,12 @@ impl LoxCallable {
         LoxCallable::NativeFunction(native)
     }
 
-    pub fn lox_class(class: Class, methods: HashMap<String, LoxFunction>) -> Self {
-        LoxCallable::LoxClass(LoxClass::new(class, methods))
+    pub fn lox_class(
+        class: Class,
+        superclass: Option<LoxClass>,
+        methods: HashMap<String, LoxFunction>,
+    ) -> Self {
+        LoxCallable::LoxClass(LoxClass::new(class, superclass, methods))
     }
 }
 
