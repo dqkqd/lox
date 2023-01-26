@@ -1040,30 +1040,6 @@ hello dqk
     }
 
     #[test]
-    fn explicit_return_this() -> Result<(), std::io::Error> {
-        let source = r#"
-
-class Foo {
-  init() {
-    print this;
-    return this;
-  }
-}
-
-var foo = Foo();
-print foo.init();
-"#;
-
-        let expected_output = r#"
-<Foo instance, id 0>
-<Foo instance, id 0>
-<Foo instance, id 0>
-"#;
-
-        test_interpreter(source, expected_output)
-    }
-
-    #[test]
     fn implicit_return_this() -> Result<(), std::io::Error> {
         let source = r#"
 

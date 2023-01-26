@@ -9,6 +9,7 @@ pub(crate) enum ResolveErrorType {
     ReadDuringInitializer(String),
     VarAlreadyExistInScope(String),
     ReturnFromTopLevel,
+    ReturnInsideInit,
     CallThisOutsideClass,
 }
 
@@ -27,6 +28,7 @@ impl ResolveErrorType {
             ResolveErrorType::CallThisOutsideClass => {
                 "Could not use `this` outside of a class".to_string()
             }
+            ResolveErrorType::ReturnInsideInit => "Could not return inside constructor".to_string(),
         }
     }
 }
@@ -62,6 +64,14 @@ impl ResolveError {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
             error_type: ResolveErrorType::ReturnFromTopLevel,
+        }
+    }
+
+    pub fn return_inside_init(token: &Token) -> Self {
+        Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
+            error_type: ResolveErrorType::ReturnInsideInit,
         }
     }
 

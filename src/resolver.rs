@@ -189,6 +189,7 @@ where
             Stmt::Return(r) => {
                 let result = match self.function_type {
                     FunctionType::Null => Err(ResolveError::return_from_top_level(&r.keyword)),
+                    FunctionType::Initializer => Err(ResolveError::return_inside_init(&r.keyword)),
                     _ => self.visit_expr(&r.value),
                 };
                 result?
@@ -380,6 +381,25 @@ print this;
 [line 5]: ResolveError: Could not use `this` outside of a class
     return this;
            ^^^^
+"#;
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn dont_allow_return_inside_init() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello {
+    init() {
+        return "something else";
+    }
+}
+"#;
+
+        let expected_output = r#"
+[line 4]: ResolveError: Could not return inside constructor
+        return "something else";
+        ^^^^^^
 "#;
 
         test_resolver(source, expected_output)
