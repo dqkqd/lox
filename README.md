@@ -22,7 +22,7 @@ for (var i = 1; i < 10; i = i + 1) {
 ```bash
 cargo run --release -- examples/fibonacci.lox
 ```
-result
+- result
 ```
 1
 1
