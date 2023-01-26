@@ -17,6 +17,7 @@ where
     errors: Vec<ResolveError>,
     interpreter: &'a mut Interpreter<W>,
     function_level: usize,
+    class_level: usize,
 }
 
 type ResolveResult<T> = Result<T, ResolveError>;
@@ -40,6 +41,7 @@ where
             errors: Default::default(),
             scopes: Default::default(),
             function_level: 0,
+            class_level: 0,
         }
     }
 
@@ -141,7 +143,12 @@ where
                 self.visit_expr(&set.value)?;
                 self.visit_expr(&set.object)?;
             }
-            Expr::This(this) => self.resolve_local(e.clone(), &this.keyword),
+            Expr::This(this) => {
+                if self.class_level == 0 {
+                    return Err(ResolveError::call_this_outside_class(&this.keyword));
+                }
+                self.resolve_local(e.clone(), &this.keyword);
+            }
         }
         Ok(())
     }
@@ -206,6 +213,7 @@ where
                 self.declare(&class.name)?;
                 self.define(&class.name);
 
+                self.class_level += 1;
                 self.begin_scope();
                 self.scopes
                     .last_mut()
@@ -216,7 +224,8 @@ where
                     self.visit_stmt(method)?;
                 }
 
-                self.end_scope()
+                self.end_scope();
+                self.class_level -= 1;
             }
         };
 
@@ -314,6 +323,28 @@ return 1;
 [line 10]: ResolveError: Could not return from top level code
 return 1;
 ^^^^^^
+"#;
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn call_this_outside_class() -> Result<(), std::io::Error> {
+        let source = r#"
+print this;
+class Hello {}
+fun f() {
+    return this;
+}
+"#;
+
+        let expected_output = r#"
+[line 2]: ResolveError: Could not use `this` outside of a class
+print this;
+      ^^^^
+[line 5]: ResolveError: Could not use `this` outside of a class
+    return this;
+           ^^^^
 "#;
 
         test_resolver(source, expected_output)

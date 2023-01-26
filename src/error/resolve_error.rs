@@ -9,6 +9,7 @@ pub(crate) enum ResolveErrorType {
     ReadDuringInitializer(String),
     VarAlreadyExistInScope(String),
     ReturnFromTopLevel,
+    CallThisOutsideClass,
 }
 
 impl ResolveErrorType {
@@ -22,6 +23,9 @@ impl ResolveErrorType {
             }
             ResolveErrorType::ReturnFromTopLevel => {
                 "Could not return from top level code".to_string()
+            }
+            ResolveErrorType::CallThisOutsideClass => {
+                "Could not use `this` outside of a class".to_string()
             }
         }
     }
@@ -58,6 +62,14 @@ impl ResolveError {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
             error_type: ResolveErrorType::ReturnFromTopLevel,
+        }
+    }
+
+    pub fn call_this_outside_class(token: &Token) -> Self {
+        Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
+            error_type: ResolveErrorType::CallThisOutsideClass,
         }
     }
 }
