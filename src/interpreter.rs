@@ -66,12 +66,12 @@ where
         self.locals.insert(expr, depth);
     }
 
-    pub fn lookup_variable(&self, expr: &Expr, name: &Token) -> InterpreterResult<Object> {
+    pub fn lookup_variable(&self, expr: &Expr, token: &Token) -> InterpreterResult<Object> {
         let result = match self.locals.get(expr) {
-            Some(depth) => self.environment.get_at(name, *depth),
-            None => self.environment.get_global(name),
+            Some(depth) => self.environment.get_at(token.lexeme(), *depth),
+            None => self.environment.get_global(token.lexeme()),
         };
-        result.ok_or_else(|| RuntimeError::undefined_variable(name))
+        result.ok_or_else(|| RuntimeError::undefined_variable(token))
     }
 
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -176,8 +176,8 @@ where
                 let name = &assign.name;
                 let value = self.visit_expr(&assign.value)?;
                 let result = match self.locals.get(e) {
-                    Some(depth) => self.environment.assign_at(name, value, *depth),
-                    None => self.environment.assign_global(name, value),
+                    Some(depth) => self.environment.assign_at(name.lexeme(), value, *depth),
+                    None => self.environment.assign_global(name.lexeme(), value),
                 };
                 result.ok_or_else(|| RuntimeError::undefined_variable(name))
             }
@@ -308,8 +308,10 @@ where
                 let mut methods = HashMap::new();
                 for method in &class.methods {
                     if let Stmt::Function(method) = method {
+                        let method_name = method.name.lexeme();
+                        let initializer = method_name == "init";
                         let lox_function =
-                            LoxFunction::new(method.clone(), self.environment.clone());
+                            LoxFunction::new(method.clone(), self.environment.clone(), initializer);
                         methods.insert(lox_function.name().to_string(), lox_function);
                     } else {
                         todo!("class should only contain methods")
@@ -1045,6 +1047,29 @@ class Foo {
   init() {
     print this;
     return this;
+  }
+}
+
+var foo = Foo();
+print foo.init();
+"#;
+
+        let expected_output = r#"
+<Foo instance, id 0>
+<Foo instance, id 0>
+<Foo instance, id 0>
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn implicit_return_this() -> Result<(), std::io::Error> {
+        let source = r#"
+
+class Foo {
+  init() {
+    print this;
   }
 }
 

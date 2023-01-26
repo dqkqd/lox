@@ -17,13 +17,15 @@ use crate::{
 pub(crate) struct LoxFunction {
     declaration: Function,
     closure: EnvironmentTree,
+    initializer: bool,
 }
 
 impl LoxFunction {
-    pub fn new(declaration: Function, closure: EnvironmentTree) -> Self {
+    pub fn new(declaration: Function, closure: EnvironmentTree, initializer: bool) -> Self {
         Self {
             declaration,
             closure,
+            initializer,
         }
     }
 
@@ -36,6 +38,7 @@ impl LoxFunction {
         Self {
             declaration: self.declaration.clone(),
             closure: env,
+            initializer: self.initializer,
         }
     }
 }
@@ -77,10 +80,16 @@ impl Callable for LoxFunction {
         }
 
         std::mem::swap(interpreter.environment_mut(), &mut self.closure);
-        let result = interpreter
-            .stmt(&self.declaration.body)
-            .map(|_| Object::Null)
-            .unwrap_or_else(|err| err.get_value_from_return());
+
+        let result = interpreter.stmt(&self.declaration.body);
+        let result = if self.initializer {
+            interpreter.environment_mut().get_at("this", 0).unwrap()
+        } else {
+            result
+                .map(|_| Object::Null)
+                .unwrap_or_else(|err| err.get_value_from_return())
+        };
+
         std::mem::swap(interpreter.environment_mut(), &mut self.closure);
 
         self.closure.move_to_outer();

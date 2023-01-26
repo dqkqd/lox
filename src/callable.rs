@@ -31,7 +31,7 @@ pub(crate) enum LoxCallable {
 
 impl LoxCallable {
     pub fn lox_function(declaration: Function, closure: EnvironmentTree) -> Self {
-        LoxCallable::LoxFunction(LoxFunction::new(declaration, closure))
+        LoxCallable::LoxFunction(LoxFunction::new(declaration, closure, false))
     }
 
     pub fn native_function(native: NativeFunction) -> Self {
