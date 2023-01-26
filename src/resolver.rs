@@ -210,7 +210,7 @@ where
                 self.scopes
                     .last_mut()
                     .unwrap()
-                    .insert("this".to_uppercase(), false);
+                    .insert("this".to_string(), false);
 
                 for method in &class.methods {
                     self.visit_stmt(method)?;
