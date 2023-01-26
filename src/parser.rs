@@ -222,8 +222,8 @@ impl Parser {
             TokenType::Semicolon => Expr::Literal(Object::Null),
             _ => self.expression()?,
         };
-        self.consume(TokenType::Semicolon)?;
-        Ok(Stmt::Return(Return::new(keyword, value)))
+        let semicolon = self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Return(Return::new(value, keyword, semicolon)))
     }
 
     fn print_statement(&mut self) -> ParseResult<Stmt> {

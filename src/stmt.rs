@@ -114,12 +114,17 @@ impl Function {
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Return {
     pub keyword: Token,
+    pub semicolon: Token,
     pub value: Expr,
 }
 
 impl Return {
-    pub fn new(keyword: Token, value: Expr) -> Self {
-        Self { keyword, value }
+    pub fn new(value: Expr, keyword: Token, semicolon: Token) -> Self {
+        Self {
+            value,
+            keyword,
+            semicolon,
+        }
     }
 }
 

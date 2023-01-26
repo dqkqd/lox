@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{source::CharPos, token::Token};
+use crate::{source::CharPos, stmt::Return, token::Token};
 
 use super::reporter::impl_error_pos;
 
@@ -59,18 +59,18 @@ impl ResolveError {
         }
     }
 
-    pub fn return_from_top_level(token: &Token) -> Self {
+    pub fn return_from_top_level(return_expr: &Return) -> Self {
         Self {
-            start_pos: token.start_pos(),
-            end_pos: token.end_pos(),
+            start_pos: return_expr.keyword.start_pos(),
+            end_pos: return_expr.semicolon.end_pos(),
             error_type: ResolveErrorType::ReturnFromTopLevel,
         }
     }
 
-    pub fn return_inside_init(token: &Token) -> Self {
+    pub fn return_inside_init(return_expr: &Return) -> Self {
         Self {
-            start_pos: token.start_pos(),
-            end_pos: token.end_pos(),
+            start_pos: return_expr.keyword.start_pos(),
+            end_pos: return_expr.semicolon.end_pos(),
             error_type: ResolveErrorType::ReturnInsideInit,
         }
     }

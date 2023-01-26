@@ -190,11 +190,11 @@ where
             Stmt::Return(r) => {
                 match self.function_type {
                     FunctionType::Null => {
-                        return Err(ResolveError::return_from_top_level(&r.keyword))
+                        return Err(ResolveError::return_from_top_level(&r));
                     }
                     FunctionType::Initializer => {
                         if &r.value != &Expr::Literal(Object::Null) {
-                            return Err(ResolveError::return_inside_init(&r.keyword));
+                            return Err(ResolveError::return_inside_init(&r));
                         }
                     }
                     _ => (),
@@ -362,10 +362,10 @@ return 1;
         let expected_output = r#"
 [line 7]: ResolveError: Could not return from top level code
     return 2;
-    ^^^^^^
+    ^^^^^^^^^
 [line 10]: ResolveError: Could not return from top level code
 return 1;
-^^^^^^
+^^^^^^^^^
 "#;
 
         test_resolver(source, expected_output)
@@ -406,7 +406,7 @@ class Hello {
         let expected_output = r#"
 [line 4]: ResolveError: Could not return inside constructor
         return "something else";
-        ^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^
 "#;
 
         test_resolver(source, expected_output)
