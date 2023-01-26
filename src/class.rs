@@ -47,6 +47,10 @@ impl LoxClass {
         }
     }
 
+    pub fn get_method(&self, name: &str) -> Option<&LoxFunction> {
+        self.methods.get(name)
+    }
+
     pub fn new_instance(&mut self, id: usize) -> LoxInstance {
         LoxInstance {
             id,

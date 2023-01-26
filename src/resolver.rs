@@ -267,7 +267,7 @@ where
                     self.scopes
                         .last_mut()
                         .unwrap()
-                        .insert("super".to_string(), false);
+                        .insert("super".to_string(), true);
                 }
 
                 self.class_level += 1;
@@ -275,7 +275,7 @@ where
                 self.scopes
                     .last_mut()
                     .unwrap()
-                    .insert("this".to_string(), false);
+                    .insert("this".to_string(), true);
 
                 let old_function_type = self.function_type;
 

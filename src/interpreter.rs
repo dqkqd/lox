@@ -246,7 +246,31 @@ where
                 }
             }
             Expr::This(this) => self.lookup_variable(e, &this.keyword),
-            Expr::Super(_) => todo!(),
+            Expr::Super(super_call) => {
+                let distance = self.locals.get(e);
+                if distance.is_none() {
+                    todo!();
+                }
+
+                let distance = distance.unwrap();
+                let superclass = self.environment.get_at("super", *distance - 1);
+                let class = self.environment.get_at("this", *distance - 1);
+
+                match superclass {
+                    Some(Object::Callable(LoxCallable::LoxClass(superclass))) => match class {
+                        Some(Object::LoxInstance(instance)) => {
+                            let method = superclass.get_method(super_call.method.lexeme());
+                            if method.is_none() {
+                                return Err(RuntimeError::undefined_property(&super_call.method));
+                            }
+                            let method = method.map(|m| m.bind(instance)).unwrap();
+                            Ok(Object::Callable(LoxCallable::LoxFunction(method)))
+                        }
+                        _ => todo!(),
+                    },
+                    _ => todo!(),
+                }
+            }
         }
     }
 
@@ -324,6 +348,12 @@ where
                     _ => None,
                 };
 
+                if let Some(lox_class) = superclass.clone() {
+                    self.environment.move_to_inner();
+                    self.environment
+                        .define("super", Object::Callable(LoxCallable::LoxClass(lox_class)));
+                }
+
                 let mut methods = HashMap::new();
                 for method in &class.methods {
                     if let Stmt::Function(method) = method {
@@ -336,10 +366,15 @@ where
                         todo!("class should only contain methods")
                     }
                 }
+
+                if superclass.is_some() {
+                    self.environment.move_to_outer();
+                };
+
                 self.environment.define(
                     class.name.lexeme(),
                     Object::Callable(LoxCallable::lox_class(class.clone(), superclass, methods)),
-                )
+                );
             }
         }
         Ok(())
@@ -1179,6 +1214,56 @@ B().f(); // call f from super
         let expected_output = r#"
 `g` is called from sub class
 `f` is called from super class
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn subclass_call_the_right_super() -> Result<(), std::io::Error> {
+        let source = r#"
+class A {
+    method() { print "A method"; }
+}
+
+class B : A {
+    method() { print "B method"; }
+    test() { super.method(); }
+}
+
+class C : B {}
+
+C().test();
+"#;
+
+        let expected_output = r#"
+A method
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn subclass_call_undefined_method() -> Result<(), std::io::Error> {
+        let source = r#"
+class A {
+    method() { print "A method"; }
+}
+
+class B : A {
+    method() { print "B method"; }
+    test() { super.method(); }
+}
+
+class C : B {}
+
+C().no_method();
+"#;
+
+        let expected_output = r#"
+[line 13]: RuntimeError: Undefined property `no_method`
+C().no_method();
+    ^^^^^^^^^
 "#;
 
         test_interpreter(source, expected_output)
