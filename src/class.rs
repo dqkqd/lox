@@ -71,13 +71,12 @@ impl Callable for LoxClass {
         W: std::io::Write,
     {
         let lox_instance = self.new_instance(interpreter.instance_id());
+        interpreter.add_new_instance(lox_instance.clone());
 
         if let Some(init) = self.methods.get("init") {
-            init.bind(lox_instance.clone())
-                .call(interpreter, arguments)?;
+            return init.bind(lox_instance.clone()).call(interpreter, arguments);
         };
 
-        interpreter.add_new_instance(lox_instance.clone());
         Ok(Object::LoxInstance(lox_instance))
     }
 }
