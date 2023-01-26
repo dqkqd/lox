@@ -1018,4 +1018,22 @@ dqk
 
         test_interpreter(source, expected_output)
     }
+
+    #[test]
+    fn call_init_inside_class() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello {
+    init(name) {
+        print "hello " + name;
+    }
+}
+var hello = Hello("dqk");
+"#;
+
+        let expected_output = r#"
+hello dqk
+"#;
+
+        test_interpreter(source, expected_output)
+    }
 }
