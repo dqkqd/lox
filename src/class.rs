@@ -107,13 +107,12 @@ impl From<LoxInstance> for LoxInstanceFields {
 impl LoxInstanceFields {
     pub fn get(&self, name: &Token) -> Option<Object> {
         let object = self.fields.get(name.lexeme());
-        if object.is_none() {
-            self.instance
-                .find_method(name.lexeme())
-                .map(|fun| Object::Callable(LoxCallable::LoxFunction(fun.clone())))
-        } else {
-            object.cloned()
+        if object.is_some() {
+            return object.cloned();
         }
+        self.instance
+            .find_method(name.lexeme())
+            .map(|fun| Object::Callable(LoxCallable::LoxFunction(fun.clone())))
     }
 
     pub fn set(&mut self, name: &Token, value: Object) {
