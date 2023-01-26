@@ -74,7 +74,7 @@ impl Callable for LoxClass {
         interpreter.add_new_instance(lox_instance.clone());
 
         if let Some(init) = self.methods.get("init") {
-            return init.bind(lox_instance.clone()).call(interpreter, arguments);
+            return init.bind(lox_instance).call(interpreter, arguments);
         };
 
         Ok(Object::LoxInstance(lox_instance))
@@ -124,7 +124,7 @@ impl LoxInstanceFields {
             .instance
             .find_method(name.lexeme())
             .map(|fun| fun.bind(self.instance.clone()));
-        method.map(|fun| Object::Callable(LoxCallable::LoxFunction(fun.clone())))
+        method.map(|fun| Object::Callable(LoxCallable::LoxFunction(fun)))
     }
 
     pub fn set(&mut self, name: &Token, value: Object) {

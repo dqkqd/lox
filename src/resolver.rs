@@ -190,11 +190,11 @@ where
             Stmt::Return(r) => {
                 match self.function_type {
                     FunctionType::Null => {
-                        return Err(ResolveError::return_from_top_level(&r));
+                        return Err(ResolveError::return_from_top_level(r));
                     }
                     FunctionType::Initializer => {
-                        if &r.value != &Expr::Literal(Object::Null) {
-                            return Err(ResolveError::return_inside_init(&r));
+                        if r.value != Expr::Literal(Object::Null) {
+                            return Err(ResolveError::return_inside_init(r));
                         }
                     }
                     _ => (),
