@@ -14,6 +14,7 @@ pub(crate) enum TokenType {
     Semicolon,
     Slash,
     Star,
+    Colon,
 
     // One or two character tokens.
     Bang,
@@ -107,6 +108,7 @@ impl ToString for TokenType {
             TokenType::Semicolon => ";".to_string(),
             TokenType::Slash => "/".to_string(),
             TokenType::Star => "*".to_string(),
+            TokenType::Colon => ":".to_string(),
             TokenType::Bang => "!".to_string(),
             TokenType::BangEqual => "!=".to_string(),
             TokenType::Equal => "=".to_string(),

@@ -197,6 +197,7 @@ impl Scanner {
             '+' => TokenType::Plus,
             ';' => TokenType::Semicolon,
             '*' => TokenType::Star,
+            ':' => TokenType::Colon,
 
             // operators
             '!' => match self.peek() {
@@ -344,7 +345,7 @@ mod test {
     fn scan_single_lexeme() -> Result<(), std::io::Error> {
         let source = r#"()
 {},.-+
-;*"#;
+;*:"#;
         let expected_output = r#"
 line: 1, token: (
 line: 1, token: )
@@ -356,6 +357,7 @@ line: 2, token: -
 line: 2, token: +
 line: 3, token: ;
 line: 3, token: *
+line: 3, token: :
 line: 3, token: EOF"#;
         test_scanner(source, expected_output)
     }
