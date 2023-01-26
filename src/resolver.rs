@@ -176,7 +176,7 @@ where
                 self.resolve_local(e.clone(), &this.keyword);
             }
             Expr::Super(super_call) => {
-                todo!()
+                self.resolve_local(e.clone(), &super_call.keyword);
             }
         }
         Ok(())
@@ -262,6 +262,14 @@ where
                     self.visit_expr(&Expr::Variable(superclass))?;
                 }
 
+                if class.superclass.is_some() {
+                    self.begin_scope();
+                    self.scopes
+                        .last_mut()
+                        .unwrap()
+                        .insert("super".to_string(), false);
+                }
+
                 self.class_level += 1;
                 self.begin_scope();
                 self.scopes
@@ -279,6 +287,10 @@ where
                 self.function_type = old_function_type;
                 self.end_scope();
                 self.class_level -= 1;
+
+                if class.superclass.is_some() {
+                    self.end_scope();
+                }
             }
         };
 
