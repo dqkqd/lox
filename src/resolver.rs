@@ -9,6 +9,31 @@ use crate::{
     visitor::Visitor,
 };
 
+#[derive(Debug, Clone, Copy)]
+enum FunctionType {
+    Null,
+    Function,
+    Method,
+    Initializer,
+}
+
+impl FunctionType {
+    fn next_level(&mut self, fun_name: &str) {
+        let function_type = match &self {
+            FunctionType::Null => FunctionType::Function,
+            FunctionType::Function => FunctionType::Function,
+            FunctionType::Method => {
+                if fun_name == "init" {
+                    FunctionType::Initializer
+                } else {
+                    FunctionType::Method
+                }
+            }
+            FunctionType::Initializer => FunctionType::Function,
+        };
+        *self = function_type;
+    }
+}
 pub(crate) struct Resolver<'a, W>
 where
     W: std::io::Write,
@@ -16,7 +41,7 @@ where
     scopes: Vec<HashMap<String, bool>>,
     errors: Vec<ResolveError>,
     interpreter: &'a mut Interpreter<W>,
-    function_level: usize,
+    function_type: FunctionType,
     class_level: usize,
 }
 
@@ -40,7 +65,7 @@ where
             interpreter,
             errors: Default::default(),
             scopes: Default::default(),
-            function_level: 0,
+            function_type: FunctionType::Null,
             class_level: 0,
         }
     }
@@ -162,22 +187,28 @@ where
                 self.visit_expr(p)?;
             }
             Stmt::Return(r) => {
-                if self.function_level == 0 {
-                    return Err(ResolveError::return_from_top_level(&r.keyword));
-                }
-                self.visit_expr(&r.value)?;
+                let result = match self.function_type {
+                    FunctionType::Null => Err(ResolveError::return_from_top_level(&r.keyword)),
+                    _ => self.visit_expr(&r.value),
+                };
+                result?
             }
             Stmt::Function(fun) => {
                 self.declare(&fun.name)?;
                 self.define(&fun.name);
                 self.begin_scope();
-                self.function_level += 1;
+
+                let old_function_type = self.function_type;
+                self.function_type.next_level(fun.name.lexeme());
+
                 for param in &fun.params {
                     self.declare(param)?;
                     self.define(param);
                 }
                 let result = self.visit_stmt(&fun.body);
-                self.function_level -= 1;
+
+                self.function_type = old_function_type;
+
                 self.end_scope();
                 result?;
             }
@@ -220,10 +251,14 @@ where
                     .unwrap()
                     .insert("this".to_string(), false);
 
+                let old_function_type = self.function_type;
+
                 for method in &class.methods {
+                    self.function_type = FunctionType::Method;
                     self.visit_stmt(method)?;
                 }
 
+                self.function_type = old_function_type;
                 self.end_scope();
                 self.class_level -= 1;
             }
