@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 use crate::{
     error::reporter::{ErrorReporter, Reporter},
     interpreter::Interpreter,
+    object::Object,
     parser::Parser,
     resolver::Resolver,
     scanner::Scanner,
@@ -37,11 +38,25 @@ pub fn run_prompt(
     writer.flush()?;
 
     for line in reader.lines() {
-        let line = line?;
-        if !line.is_empty() {
-            lox.run(&line)?;
-            lox.reset_error();
+        let mut line = line?;
+
+        if !line.ends_with(';') {
+            line.push(';');
         }
+
+        let object = if !line.is_empty() {
+            let object = lox.run(&line)?;
+            lox.reset_error();
+            object
+        } else {
+            Object::Null
+        };
+
+        match object {
+            Object::Null => (),
+            object => writeln!(writer, "{}", object.to_string())?,
+        };
+
         write!(writer, "{PROMPT} ")?;
         writer.flush()?;
     }
@@ -69,9 +84,10 @@ where
         self.had_parse_error = false;
         self.had_resolve_error = false;
         self.had_runtime_error = false;
+        self.interpreter.flush_error();
     }
 
-    fn run(&mut self, source: &str) -> Result<(), std::io::Error> {
+    fn run(&mut self, source: &str) -> Result<Object, std::io::Error> {
         let source_pos = SourcePos::new(source);
         let reporter = Reporter::new(&source_pos);
 
@@ -82,7 +98,7 @@ where
 
         if self.had_scan_error {
             self.interpreter.write(&scanner.error_msg(&reporter))?;
-            return Ok(());
+            return Ok(Object::Null);
         }
 
         let mut parser = Parser::from(&scanner);
@@ -90,7 +106,7 @@ where
         self.had_parse_error = parser.had_error();
         if self.had_parse_error {
             self.interpreter.write(&parser.error_msg(&reporter))?;
-            return Ok(());
+            return Ok(Object::Null);
         }
 
         let mut resolver = Resolver::new(&mut self.interpreter);
@@ -99,17 +115,16 @@ where
         if self.had_resolve_error {
             let error_msg = resolver.error_msg(&reporter);
             self.interpreter.write(&error_msg)?;
-            return Ok(());
+            return Ok(Object::Null);
         }
 
-        self.interpreter.interpret(&statements);
+        let object = self.interpreter.interpret(&statements);
         if self.interpreter.had_error() {
             let error_msg = self.interpreter.error_msg(&reporter);
             self.interpreter.write(&error_msg)?;
-            return Ok(());
         }
 
-        Ok(())
+        Ok(object)
     }
 }
 

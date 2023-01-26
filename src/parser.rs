@@ -254,6 +254,11 @@ impl Parser {
     }
 
     fn expression_statement(&mut self) -> ParseResult<Stmt> {
+        if self.peek_type() == &TokenType::Semicolon {
+            self.next();
+            return Ok(Stmt::Expression(Expr::Literal(Object::Null)));
+        }
+
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Expression(expr))

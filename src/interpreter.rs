@@ -50,11 +50,15 @@ where
         }
     }
 
+    pub fn flush_error(&mut self) {
+        self.errors.clear()
+    }
+
     fn expr(&mut self, e: &Expr) -> InterpreterResult<Object> {
         e.walk_epxr(self)
     }
 
-    pub fn stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
+    pub fn stmt(&mut self, s: &Stmt) -> InterpreterResult<Object> {
         s.walk_stmt(self)
     }
 
@@ -74,14 +78,15 @@ where
         result.ok_or_else(|| RuntimeError::undefined_variable(token))
     }
 
-    pub fn interpret(&mut self, statements: &[Stmt]) {
-        self.errors = statements
-            .iter()
-            .filter_map(|s| match self.stmt(s) {
-                Err(error) => Some(error),
-                _ => None,
-            })
-            .collect();
+    pub fn interpret(&mut self, statements: &[Stmt]) -> Object {
+        let mut object = Object::Null;
+        for stmt in statements {
+            match self.stmt(stmt) {
+                Ok(o) => object = o,
+                Err(error) => self.errors.push(error),
+            }
+        }
+        object
     }
 
     pub fn add_new_instance(&mut self, lox_instance: LoxInstance) {
@@ -114,7 +119,7 @@ impl<'a> Default for Interpreter<StdoutLock<'a>> {
     }
 }
 
-impl<W> Visitor<InterpreterResult<Object>, InterpreterResult<()>> for Interpreter<W>
+impl<W> Visitor<InterpreterResult<Object>, InterpreterResult<Object>> for Interpreter<W>
 where
     W: std::io::Write,
 {
@@ -274,19 +279,19 @@ where
         }
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> InterpreterResult<()> {
-        match s {
-            Stmt::Expression(e) => {
-                self.visit_expr(e)?;
-            }
+    fn visit_stmt(&mut self, s: &Stmt) -> InterpreterResult<Object> {
+        let res = match s {
+            Stmt::Expression(e) => self.visit_expr(e)?,
             Stmt::Print(e) => {
                 let value = self.visit_expr(e)?;
                 self.write(&value.to_string())?;
+                Object::Null
             }
             Stmt::Var(var) => {
                 let value = self.visit_expr(&var.expression)?;
                 let name = var.identifier.lexeme();
                 self.environment.define(name, value);
+                Object::Null
             }
             Stmt::Block(block) => {
                 self.environment.move_to_inner();
@@ -299,6 +304,7 @@ where
                 if let Some(error) = error {
                     return error;
                 }
+                Object::Null
             }
             Stmt::If(if_statement) => {
                 let condition = self.visit_expr(&if_statement.condition)?;
@@ -306,15 +312,19 @@ where
                     self.visit_stmt(&if_statement.then_branch)?;
                 } else if let Some(else_branch) = &if_statement.else_branch {
                     self.visit_stmt(else_branch)?;
-                }
+                };
+                Object::Null
             }
-            Stmt::While(while_statement) => loop {
-                let condition = self.visit_expr(&while_statement.condition)?;
-                if !condition.is_truthy() {
-                    break;
+            Stmt::While(while_statement) => {
+                loop {
+                    let condition = self.visit_expr(&while_statement.condition)?;
+                    if !condition.is_truthy() {
+                        break;
+                    }
+                    self.visit_stmt(&while_statement.body)?;
                 }
-                self.visit_stmt(&while_statement.body)?;
-            },
+                Object::Null
+            }
 
             Stmt::Function(fun) => {
                 let closure = self.environment.clone();
@@ -322,6 +332,7 @@ where
                     fun.name.lexeme(),
                     Object::Callable(LoxCallable::lox_function(fun.clone(), closure)),
                 );
+                Object::Null
             }
 
             Stmt::Return(return_statement) => {
@@ -375,9 +386,12 @@ where
                     class.name.lexeme(),
                     Object::Callable(LoxCallable::lox_class(class.clone(), superclass, methods)),
                 );
+
+                Object::Null
             }
-        }
-        Ok(())
+        };
+
+        Ok(res)
     }
 }
 
@@ -861,7 +875,7 @@ fun fib(n) {
     return fib(n - 1) + fib(n - 2);
 }
 
-for (var i = 1; i < 10; i = i + 1) {
+for (var i = 1; i < 9; i = i + 1) {
     print fib(i);
 }
 "#;
@@ -875,7 +889,6 @@ for (var i = 1; i < 10; i = i + 1) {
 8
 13
 21
-34
 "#;
         test_interpreter(source, expected_output)
     }
