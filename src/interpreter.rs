@@ -245,7 +245,7 @@ where
                     )),
                 }
             }
-            Expr::This(_) => todo!(),
+            Expr::This(this) => self.lookup_variable(e, &this.keyword),
         }
     }
 
@@ -967,6 +967,54 @@ Bacon().eat(); // Prints "Crunch crunch crunch!".
         let expected_output = r#"
 Crunch crunch crunch!
         "#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn this_bind_to_variable() -> Result<(), std::io::Error> {
+        let source = r#"
+class Cake {
+  taste() {
+    var adjective = "delicious";
+    print "The " + this.flavor + " cake is " + adjective + "!";
+  }
+}
+
+var cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // Prints "The German chocolate cake is delicious!".
+"#;
+
+        let expected_output = r#"
+The German chocolate cake is delicious!
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn this_support_closure() -> Result<(), std::io::Error> {
+        let source = r#"
+class Human {
+  getCallback() {
+    fun localFunction() {
+      print this.name;
+    }
+
+    return localFunction;
+  }
+}
+
+var thing = Human();
+thing.name = "dqk";
+var callback = thing.getCallback();
+callback();
+"#;
+
+        let expected_output = r#"
+dqk
+"#;
 
         test_interpreter(source, expected_output)
     }

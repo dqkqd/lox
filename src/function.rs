@@ -5,6 +5,7 @@ use std::{
 
 use crate::{
     callable::Callable,
+    class::LoxInstance,
     environment::EnvironmentTree,
     error::runtime_error::RuntimeError,
     interpreter::Interpreter,
@@ -23,6 +24,18 @@ impl LoxFunction {
         Self {
             declaration,
             closure,
+        }
+    }
+
+    pub fn bind(&self, instance: LoxInstance) -> Self {
+        let env = {
+            let mut env = self.closure.clone();
+            env.define("this", Object::LoxInstance(instance));
+            env
+        };
+        Self {
+            declaration: self.declaration.clone(),
+            closure: env,
         }
     }
 }
