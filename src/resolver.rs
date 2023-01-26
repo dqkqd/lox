@@ -252,6 +252,13 @@ where
                 self.declare(&class.name)?;
                 self.define(&class.name);
 
+                if let Some(superclass) = class.superclass.clone() {
+                    if class.name.lexeme() == superclass.name.lexeme() {
+                        return Err(ResolveError::class_inherit_itself(&class.name));
+                    }
+                    self.visit_expr(&Expr::Variable(superclass))?;
+                }
+
                 self.class_level += 1;
                 self.begin_scope();
                 self.scopes
@@ -407,6 +414,22 @@ class Hello {
 [line 4]: ResolveError: Could not return inside constructor
         return "something else";
         ^^^^^^^^^^^^^^^^^^^^^^^^
+"#;
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn dont_allow_class_inherit_itself() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello : Hello {
+}
+"#;
+
+        let expected_output = r#"
+[line 2]: ResolveError: A class could not inherit from itself
+class Hello : Hello {
+      ^^^^^
 "#;
 
         test_resolver(source, expected_output)

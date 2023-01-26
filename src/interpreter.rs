@@ -305,6 +305,21 @@ where
             }
 
             Stmt::Class(class) => {
+                let superclass = match &class.superclass {
+                    Some(superclass) => Some(self.visit_expr(&Expr::Variable(superclass.clone()))?),
+                    None => None,
+                };
+
+                if let Some(superclass) = &superclass {
+                    match superclass {
+                        &Object::Callable(LoxCallable::LoxClass(_)) => (),
+                        _ => {
+                            let name = &class.superclass.clone().unwrap().name;
+                            return Err(RuntimeError::superclass_must_be_class(name));
+                        }
+                    }
+                }
+
                 let mut methods = HashMap::new();
                 for method in &class.methods {
                     if let Stmt::Function(method) = method {
@@ -1100,6 +1115,21 @@ print foo.x;
 [line 10]: RuntimeError: Undefined property `x`
 print foo.x;
           ^
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn superclass_must_be_class() -> Result<(), std::io::Error> {
+        let source = r#"
+class Hello : NotAClass {}
+"#;
+
+        let expected_output = r#"
+[line 2]: RuntimeError: Undefined variable `NotAClass`
+class Hello : NotAClass {}
+              ^^^^^^^^^
 "#;
 
         test_interpreter(source, expected_output)

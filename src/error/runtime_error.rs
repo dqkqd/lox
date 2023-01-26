@@ -13,6 +13,7 @@ pub(crate) enum RuntimeErrorType {
     ObjectNotCallable(String),
     ReturnValue(Object), // this is not error
     OnlyClassInstanceHasField(String, String),
+    SuperclassMustBeClass,
     UndefinedProperty(String),
 }
 
@@ -30,6 +31,7 @@ impl RuntimeErrorType {
             RuntimeErrorType::OnlyClassInstanceHasField(object, field) => {
                 format!("`{object}` is not class instance. It cannot have field `{field}`")
             }
+            RuntimeErrorType::SuperclassMustBeClass => "superclass must be a class".to_string(),
             RuntimeErrorType::UndefinedProperty(property) => {
                 format!("Undefined property `{property}`")
             }
@@ -94,6 +96,13 @@ impl RuntimeError {
         }
     }
 
+    pub fn superclass_must_be_class(token: &Token) -> Self {
+        Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
+            error_type: RuntimeErrorType::SuperclassMustBeClass,
+        }
+    }
     pub fn return_value(token: &Token, value: Object) -> Self {
         Self {
             start_pos: token.start_pos(),

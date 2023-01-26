@@ -160,9 +160,14 @@ impl Visitor<String, String> for AstRepr {
                     .map(|fun| self.visit_stmt(fun))
                     .collect::<Vec<_>>()
                     .join(", ");
+                let superclass = class
+                    .superclass
+                    .as_ref()
+                    .map(|ident| ident.name.lexeme())
+                    .unwrap_or("Null");
                 format!(
                     "
-                    Stmt::Class(name={}, methods=({methods}))",
+                    Stmt::Class(name={}, superclass={superclass}, methods=({methods}))",
                     class.name.lexeme()
                 )
             }

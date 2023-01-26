@@ -117,6 +117,15 @@ impl Parser {
 
     fn class_declaration(&mut self) -> ParseResult<Stmt> {
         let class_name = self.consume_identifier("class name")?;
+
+        let superclass = if self.peek_type() == &TokenType::Colon {
+            self.consume(TokenType::Colon)?;
+            let name = self.consume_identifier("superclass name")?;
+            Some(Variable::new(name))
+        } else {
+            None
+        };
+
         self.consume(TokenType::LeftBrace)?;
         let mut methods = Vec::new();
         loop {
@@ -133,7 +142,7 @@ impl Parser {
 
         self.consume(TokenType::RightBrace)?;
 
-        Ok(Stmt::Class(Class::new(class_name, methods)))
+        Ok(Stmt::Class(Class::new(class_name, superclass, methods)))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Stmt> {
@@ -1211,7 +1220,28 @@ class Breakfast {
 "#;
 
         let expected_output = r#"
-Stmt::Class(name=Breakfast, methods=(Stmt::Function(name=cook params= body=Stmt::Block(Stmt::Print("Eggs a-fryin!"))), Stmt::Function(name=serve params=who body=Stmt::Block(Stmt::Print(Expr::Binary(Expr::Binary("Enjoy your breakfast," + Expr::Variable(who)) + "."))))))
+Stmt::Class(name=Breakfast, superclass=Null, methods=(Stmt::Function(name=cook params= body=Stmt::Block(Stmt::Print("Eggs a-fryin!"))), Stmt::Function(name=serve params=who body=Stmt::Block(Stmt::Print(Expr::Binary(Expr::Binary("Enjoy your breakfast," + Expr::Variable(who)) + "."))))))
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn class_declaration_with_superclass() -> Result<(), std::io::Error> {
+        let source = r#"
+class Breakfast : Meal{
+    cook() {
+        print "Eggs a-fryin!";
+    }
+    
+    serve(who) {
+        print "Enjoy your breakfast," + who + ".";
+    }
+}
+"#;
+
+        let expected_output = r#"
+Stmt::Class(name=Breakfast, superclass=Meal, methods=(Stmt::Function(name=cook params= body=Stmt::Block(Stmt::Print("Eggs a-fryin!"))), Stmt::Function(name=serve params=who body=Stmt::Block(Stmt::Print(Expr::Binary(Expr::Binary("Enjoy your breakfast," + Expr::Variable(who)) + "."))))))
 "#;
 
         test_parser(source, expected_output)

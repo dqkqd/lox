@@ -11,6 +11,7 @@ pub(crate) enum ResolveErrorType {
     ReturnFromTopLevel,
     ReturnInsideInit,
     CallThisOutsideClass,
+    ClassInheritItself,
 }
 
 impl ResolveErrorType {
@@ -29,6 +30,9 @@ impl ResolveErrorType {
                 "Could not use `this` outside of a class".to_string()
             }
             ResolveErrorType::ReturnInsideInit => "Could not return inside constructor".to_string(),
+            ResolveErrorType::ClassInheritItself => {
+                "A class could not inherit from itself".to_string()
+            }
         }
     }
 }
@@ -80,6 +84,14 @@ impl ResolveError {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
             error_type: ResolveErrorType::CallThisOutsideClass,
+        }
+    }
+
+    pub fn class_inherit_itself(token: &Token) -> Self {
+        Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
+            error_type: ResolveErrorType::ClassInheritItself,
         }
     }
 }

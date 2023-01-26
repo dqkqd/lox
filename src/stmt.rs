@@ -1,4 +1,8 @@
-use crate::{expr::Expr, token::Token, visitor::Visitor};
+use crate::{
+    expr::{Expr, Variable},
+    token::Token,
+    visitor::Visitor,
+};
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) enum Stmt {
@@ -131,13 +135,18 @@ impl Return {
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub(crate) struct Class {
     pub name: Token,
+    pub superclass: Option<Variable>,
     pub methods: Vec<Stmt>,
 }
 
 impl Eq for Class {}
 
 impl Class {
-    pub fn new(name: Token, methods: Vec<Stmt>) -> Self {
-        Self { name, methods }
+    pub fn new(name: Token, superclass: Option<Variable>, methods: Vec<Stmt>) -> Self {
+        Self {
+            name,
+            superclass,
+            methods,
+        }
     }
 }
