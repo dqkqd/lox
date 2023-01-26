@@ -35,6 +35,14 @@ impl FunctionType {
         *self = function_type;
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClassType {
+    Null,
+    Class,
+    SubClass,
+}
+
 pub(crate) struct Resolver<'a, W>
 where
     W: std::io::Write,
@@ -43,7 +51,7 @@ where
     errors: Vec<ResolveError>,
     interpreter: &'a mut Interpreter<W>,
     function_type: FunctionType,
-    class_level: usize,
+    class_type: ClassType,
 }
 
 type ResolveResult<T> = Result<T, ResolveError>;
@@ -67,7 +75,7 @@ where
             errors: Default::default(),
             scopes: Default::default(),
             function_type: FunctionType::Null,
-            class_level: 0,
+            class_type: ClassType::Null,
         }
     }
 
@@ -170,12 +178,17 @@ where
                 self.visit_expr(&set.object)?;
             }
             Expr::This(this) => {
-                if self.class_level == 0 {
+                if self.class_type == ClassType::Null {
                     return Err(ResolveError::call_this_outside_class(&this.keyword));
                 }
                 self.resolve_local(e.clone(), &this.keyword);
             }
             Expr::Super(super_call) => {
+                if matches!(self.class_type, ClassType::Null | ClassType::Class) {
+                    return Err(ResolveError::call_super_outside_subclass(
+                        &super_call.keyword,
+                    ));
+                }
                 self.resolve_local(e.clone(), &super_call.keyword);
             }
         }
@@ -262,15 +275,19 @@ where
                     self.visit_expr(&Expr::Variable(superclass))?;
                 }
 
+                let old_class_type = self.class_type;
+
+                self.class_type = ClassType::Class;
+
                 if class.superclass.is_some() {
                     self.begin_scope();
                     self.scopes
                         .last_mut()
                         .unwrap()
                         .insert("super".to_string(), true);
+                    self.class_type = ClassType::SubClass;
                 }
 
-                self.class_level += 1;
                 self.begin_scope();
                 self.scopes
                     .last_mut()
@@ -286,11 +303,12 @@ where
 
                 self.function_type = old_function_type;
                 self.end_scope();
-                self.class_level -= 1;
 
                 if class.superclass.is_some() {
                     self.end_scope();
                 }
+
+                self.class_type = old_class_type;
             }
         };
 
@@ -445,6 +463,30 @@ class Hello : Hello {
 [line 2]: ResolveError: A class could not inherit from itself
 class Hello : Hello {
       ^^^^^
+"#;
+
+        test_resolver(source, expected_output)
+    }
+
+    #[test]
+    fn call_super_outside_subclass() -> Result<(), std::io::Error> {
+        let source = r#"
+var name = 1;
+print super.name;
+class Hello {
+    init() {
+        super.init();
+    }
+}
+"#;
+
+        let expected_output = r#"
+[line 3]: ResolveError: Could not use `super` outside of a subclass
+print super.name;
+      ^^^^^
+[line 6]: ResolveError: Could not use `super` outside of a subclass
+        super.init();
+        ^^^^^
 "#;
 
         test_resolver(source, expected_output)

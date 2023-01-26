@@ -11,6 +11,7 @@ pub(crate) enum ResolveErrorType {
     ReturnFromTopLevel,
     ReturnInsideInit,
     CallThisOutsideClass,
+    CallSuperOutsideSubclass,
     ClassInheritItself,
 }
 
@@ -28,6 +29,9 @@ impl ResolveErrorType {
             }
             ResolveErrorType::CallThisOutsideClass => {
                 "Could not use `this` outside of a class".to_string()
+            }
+            ResolveErrorType::CallSuperOutsideSubclass => {
+                "Could not use `super` outside of a subclass".to_string()
             }
             ResolveErrorType::ReturnInsideInit => "Could not return inside constructor".to_string(),
             ResolveErrorType::ClassInheritItself => {
@@ -84,6 +88,14 @@ impl ResolveError {
             start_pos: token.start_pos(),
             end_pos: token.end_pos(),
             error_type: ResolveErrorType::CallThisOutsideClass,
+        }
+    }
+
+    pub fn call_super_outside_subclass(token: &Token) -> Self {
+        Self {
+            start_pos: token.start_pos(),
+            end_pos: token.end_pos(),
+            error_type: ResolveErrorType::CallSuperOutsideSubclass,
         }
     }
 
