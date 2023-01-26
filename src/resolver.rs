@@ -4,6 +4,7 @@ use crate::{
     error::{reporter::ErrorReporter, resolve_error::ResolveError},
     expr::Expr,
     interpreter::Interpreter,
+    object::Object,
     stmt::Stmt,
     token::Token,
     visitor::Visitor,
@@ -187,12 +188,18 @@ where
                 self.visit_expr(p)?;
             }
             Stmt::Return(r) => {
-                let result = match self.function_type {
-                    FunctionType::Null => Err(ResolveError::return_from_top_level(&r.keyword)),
-                    FunctionType::Initializer => Err(ResolveError::return_inside_init(&r.keyword)),
-                    _ => self.visit_expr(&r.value),
+                match self.function_type {
+                    FunctionType::Null => {
+                        return Err(ResolveError::return_from_top_level(&r.keyword))
+                    }
+                    FunctionType::Initializer => {
+                        if &r.value != &Expr::Literal(Object::Null) {
+                            return Err(ResolveError::return_inside_init(&r.keyword));
+                        }
+                    }
+                    _ => (),
                 };
-                result?
+                self.visit_expr(&r.value)?;
             }
             Stmt::Function(fun) => {
                 self.declare(&fun.name)?;

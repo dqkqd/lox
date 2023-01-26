@@ -1042,7 +1042,6 @@ hello dqk
     #[test]
     fn implicit_return_this() -> Result<(), std::io::Error> {
         let source = r#"
-
 class Foo {
   init() {
     print this;
@@ -1057,6 +1056,50 @@ print foo.init();
 <Foo instance, id 0>
 <Foo instance, id 0>
 <Foo instance, id 0>
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn empty_return_inside_init_should_return_this() -> Result<(), std::io::Error> {
+        let source = r#"
+class Foo {
+  init() {
+    this.x = 1;
+    return;
+  }
+}
+
+var foo = Foo();
+print foo.x;
+"#;
+
+        let expected_output = r#"
+1
+"#;
+
+        test_interpreter(source, expected_output)
+    }
+
+    #[test]
+    fn empty_return_inside_init_should_return_early() -> Result<(), std::io::Error> {
+        let source = r#"
+class Foo {
+  init() {
+    return;
+    this.x = 1;
+  }
+}
+
+var foo = Foo();
+print foo.x;
+"#;
+
+        let expected_output = r#"
+[line 10]: RuntimeError: Undefined property `x`
+print foo.x;
+          ^
 "#;
 
         test_interpreter(source, expected_output)
