@@ -87,6 +87,9 @@ impl Visitor<String, String> for AstRepr {
                 format!("Expr::Set(object={object}, name={name}, value={value})")
             }
             Expr::This(_) => "Expr::This".to_string(),
+            Expr::Super(super_call) => {
+                format!("Expr::Super(method={})", super_call.method.lexeme())
+            }
         }
     }
 

@@ -4,7 +4,7 @@ const MAXIMUM_ARGUMENTS: usize = 255;
 
 use crate::{
     error::{parse_error::ParseError, reporter::ErrorReporter},
-    expr::{Assign, Binary, Call, Expr, Get, Grouping, Set, This, Unary, Variable},
+    expr::{Assign, Binary, Call, Expr, Get, Grouping, Set, Super, This, Unary, Variable},
     object::Object,
     scanner::Scanner,
     stmt::{Block, Class, Function, If, Return, Stmt, Var, While},
@@ -487,6 +487,12 @@ impl Parser {
             }
             TokenType::Identifier(_) => Expr::Variable(Variable::new(self.peek().clone())),
             TokenType::This => Expr::This(This::new(self.peek().clone())),
+            TokenType::Super => {
+                let keyword = self.next().unwrap();
+                self.consume(TokenType::Dot)?;
+                let method = self.consume_identifier("superclass method name")?;
+                return Ok(Expr::Super(Super::new(keyword, method)));
+            }
             _ => {
                 let error = ParseError::expected_expression(self.peek());
                 return Err(error);
@@ -1330,6 +1336,49 @@ this;
 
         let expected_output = r#"
 Stmt::Expr(Expr::This)
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn super_call() -> Result<(), std::io::Error> {
+        let source = r#"
+super.method;
+"#;
+
+        let expected_output = r#"
+Stmt::Expr(Expr::Super(method=method))
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn super_call_without_dot() -> Result<(), std::io::Error> {
+        let source = r#"
+super method;
+"#;
+
+        let expected_output = r#"
+[line 2]: ParseError: Expected `.`. Found `method`
+super method;
+      ^^^^^^
+"#;
+
+        test_parser(source, expected_output)
+    }
+
+    #[test]
+    fn super_call_without_method() -> Result<(), std::io::Error> {
+        let source = r#"
+super.123;
+"#;
+
+        let expected_output = r#"
+[line 2]: ParseError: Expected `superclass method name`. Found `123`
+super.123;
+      ^^^
 "#;
 
         test_parser(source, expected_output)

@@ -246,6 +246,7 @@ where
                 }
             }
             Expr::This(this) => self.lookup_variable(e, &this.keyword),
+            Expr::Super(_) => todo!(),
         }
     }
 

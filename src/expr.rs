@@ -13,6 +13,7 @@ pub(crate) enum Expr {
     Get(Get),
     Set(Set),
     This(This),
+    Super(Super),
 }
 
 impl Eq for Expr {}
@@ -151,5 +152,17 @@ pub(crate) struct This {
 impl This {
     pub fn new(keyword: Token) -> Self {
         Self { keyword }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub(crate) struct Super {
+    pub keyword: Token,
+    pub method: Token,
+}
+
+impl Super {
+    pub fn new(keyword: Token, method: Token) -> Self {
+        Self { keyword, method }
     }
 }

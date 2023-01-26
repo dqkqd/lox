@@ -175,6 +175,9 @@ where
                 }
                 self.resolve_local(e.clone(), &this.keyword);
             }
+            Expr::Super(super_call) => {
+                todo!()
+            }
         }
         Ok(())
     }
